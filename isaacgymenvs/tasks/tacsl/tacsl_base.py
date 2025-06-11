@@ -91,10 +91,13 @@ class TacSLBase(FactoryBase, FactoryABCBase):
         franka_options.armature = 0.01  # default = 0.0
         franka_options.use_physx_armature = True
         if self.cfg_base.sim.add_damping:
+            print("✅Adding damping to Franka assets.")
             franka_options.linear_damping = 1.0  # default = 0.0; increased to improve stability
             franka_options.max_linear_velocity = 1.0  # default = 1000.0; reduced to prevent CUDA errors
-            franka_options.angular_damping = 5.0  # default = 0.5; increased to improve stability
-            franka_options.max_angular_velocity = 2 * math.pi  # default = 64.0; reduced to prevent CUDA errors
+            # franka_options.angular_damping = 5.0  # default = 0.5; increased to improve stability
+            # franka_options.max_angular_velocity = 2 * math.pi  # default = 64.0; reduced to prevent CUDA errors
+            franka_options.angular_damping = 50.0  # default = 0.5; increased to improve stability
+            franka_options.max_angular_velocity = math.pi  # default = 64.0; reduced to prevent CUDA errors
         else:
             franka_options.linear_damping = 0.0  # default = 0.0
             franka_options.max_linear_velocity = 1000.0  # default = 1000.0
@@ -176,6 +179,10 @@ class TacSLBase(FactoryBase, FactoryABCBase):
         self.arm_dof_pos = self.dof_pos[:, 0:7]
         self.arm_dof_vel = self.dof_vel[:, 0:7]
         self.arm_mass_matrix = self.mass_matrix[:, 0:7, 0:7]  # for Franka arm (not gripper)
+
+        # ⛺ ⛺uncomment the following for gear assmebly task
+        # self.robot_base_pos = self.body_pos[:, self.robot_base_body_id_env, 0:3]
+        # self.robot_base_quat = self.body_quat[:, self.robot_base_body_id_env, 0:4]
 
         self.hand_pos = self.body_pos[:, self.hand_body_id_env, 0:3]
         self.hand_quat = self.body_quat[:, self.hand_body_id_env, 0:4]

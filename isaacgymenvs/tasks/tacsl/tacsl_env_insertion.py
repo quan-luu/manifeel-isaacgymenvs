@@ -93,12 +93,14 @@ class TacSLSensors(TactileFieldSensor, TactileRGBSensor, CameraSensor):
             ('compliant_damping', self.cfg_task.env.compliant_damping),
             ('use_acceleration_spring', False)
         ])
-        tactile_shear_field_config_left = tactile_shear_field_config.copy()
         tactile_shear_field_config_right = tactile_shear_field_config.copy()
         tactile_shear_field_config_right['name'] = 'tactile_force_field_right'
         tactile_shear_field_config_right['elastomer_link_name'] = 'elastomer_right'
         tactile_shear_field_config_right['elastomer_tip_link_name'] = 'elastomer_tip_right'
-        tactile_shear_field_configs = [tactile_shear_field_config_left, tactile_shear_field_config_right]
+
+        # tactile_shear_field_configs = [tactile_shear_field_config_left, tactile_shear_field_config_right]
+        tactile_shear_field_configs = [tactile_shear_field_config_right]
+        # tactile_shear_field_configs = [tactile_shear_field_config_left]
         return tactile_shear_field_configs
 
     def get_tactile_force_field_tensors_dict(self):
@@ -115,6 +117,7 @@ class TacSLSensors(TactileFieldSensor, TactileRGBSensor, CameraSensor):
                 (tactile_normal_force.view((self.num_envs, nrows, ncols, 1)),
                  tactile_shear_force.view((self.num_envs, nrows, ncols, 2))),
                 dim=-1)
+            # print(f"✅tactile_force_field {np.min(tactile_force_field.cpu().numpy())} {np.max(tactile_force_field.cpu().numpy())}")
             tactile_force_field_dict_processed[k] = tactile_force_field
             tactile_depth_dict_processed[k] = penetration_depth.view((self.num_envs, nrows, ncols))
 
@@ -193,6 +196,7 @@ class TacSLEnvInsertion(TacSLBase, TacSLSensors, FactoryABCEnv):
         asset_info_path = f'../../assets/tacsl/yaml/{self.cfg_task.env.asset_info_filename}'  # relative to Gym's Hydra search path (cfg dir)
         self.asset_info_insertion = hydra.compose(config_name=asset_info_path)
         self.asset_info_insertion = self.asset_info_insertion['']['']['']['']['']['']['assets']['tacsl']['yaml']  # strip superfluous nesting
+        print(f"✅ Loaded asset info from {asset_info_path}")
 
     def create_envs(self):
         """Set env options. Import assets. Create actors."""
@@ -230,7 +234,7 @@ class TacSLEnvInsertion(TacSLBase, TacSLSensors, FactoryABCEnv):
         plug_options.max_linear_velocity = 1000.0  # default = 1000.0
         plug_options.angular_damping = 0.0  # default = 0.5
         plug_options.max_angular_velocity = 64.0  # default = 64.0
-        plug_options.disable_gravity = True # default = False
+        plug_options.disable_gravity = True #default: False
         plug_options.enable_gyroscopic_forces = True
         plug_options.default_dof_drive_mode = gymapi.DOF_MODE_NONE
         plug_options.use_mesh_materials = False
@@ -268,9 +272,12 @@ class TacSLEnvInsertion(TacSLBase, TacSLSensors, FactoryABCEnv):
             socket_file_parent_dir = os.path.join(self.asset_info_insertion[subassembly][components[1]]['urdf_par_dir'], 'urdf')
             socket_file = self.asset_info_insertion[subassembly][components[1]]['urdf_path'] + '.urdf'
             plug_options.density = self.asset_info_insertion[subassembly][components[0]]['density']
+            print(f"✅ Loading plug asset: {plug_file} with density {plug_options.density}")
             socket_options.density = self.asset_info_insertion[subassembly][components[1]]['density']
             plug_asset_file_path = os.path.join(os.path.abspath(urdf_root), plug_file_parent_dir, plug_file)
+            sokect_asset_file_path = os.path.join(os.path.abspath(urdf_root), socket_file_parent_dir, socket_file)
             self.asset_file_paths['plug'] = plug_asset_file_path
+            self.asset_file_paths['socket'] = sokect_asset_file_path
             plug_asset = self.gym.load_asset(self.sim, os.path.join(urdf_root, plug_file_parent_dir), plug_file, plug_options)
             socket_asset = self.gym.load_asset(self.sim, os.path.join(urdf_root, socket_file_parent_dir), socket_file, socket_options)
             plug_assets.append(plug_asset)
