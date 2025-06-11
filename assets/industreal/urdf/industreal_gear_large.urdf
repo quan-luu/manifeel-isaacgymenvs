@@ -3,14 +3,18 @@
     <link name="industreal_gear_large">
         <visual>
             <geometry>
-                <mesh filename="../mesh/industreal_gears/industreal_gear_large.obj"/>
+                <!-- <mesh filename="../mesh/industreal_gears/gear_large_center.obj" scale="2 2 2"/> -->
+                <!-- <mesh filename="../mesh/industreal_gears/industreal_gear_large.obj"/> -->
+                <mesh filename="../mesh/TVB_mesh/gear_large_origin_Mar21.obj" scale="2 2 2"/>
             </geometry>
         </visual>
         <collision>
             <geometry>
-                <mesh filename="../mesh/industreal_gears/industreal_gear_large.obj"/>
+                <!-- <mesh filename="../mesh/industreal_gears/gear_large_center.obj" scale="2 2 2"/> -->
+                <!-- <mesh filename="../mesh/industreal_gears/industreal_gear_large.obj"/> -->
+                <mesh filename="../mesh/TVB_mesh/gear_large_origin_Mar21.obj" scale="2 2 2"/>
             </geometry>
-            <sdf resolution="256"/>
+            <sdf resolution="32"/>
         </collision>
     </link>
 </robot>

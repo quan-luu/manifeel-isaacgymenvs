@@ -3,14 +3,19 @@
     <link name="industreal_gear_medium">
         <visual>
             <geometry>
-                <mesh filename="../mesh/industreal_gears/industreal_gear_medium.obj"/>
+                <!-- <mesh filename="../mesh/industreal_gears/industreal_gear_medium_re.obj" scale="2 2 2"/> -->
+                <mesh filename="../mesh/TVB_mesh/gear_medium_origin_update_Mar21.obj" scale="1.95 1.95 1.95"/>
             </geometry>
+            <material name="Blue">
+                <color rgba="0.3 0.3 1 1"/>
+            </material>
         </visual>
         <collision>
             <geometry>
-                <mesh filename="../mesh/industreal_gears/industreal_gear_medium.obj"/>
+                <mesh filename="../mesh/TVB_mesh/gear_medium_origin_update_Mar21.obj" scale="1.95 1.95 1.95"/>
+                <!-- <mesh filename="../mesh/TVB_mesh/gear_medium_origin_update_Mar21.obj" scale="2 2 2"/> -->
             </geometry>
-            <sdf resolution="256"/>
+            <sdf resolution="32"/>
         </collision>
     </link>
 </robot>
