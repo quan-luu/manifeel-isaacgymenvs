@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<robot name="classification_ball">
+    <link name="ball">
+        <visual>
+            <geometry>
+                <mesh filename="../mesh/TVB_mesh/ball_task_tabletennis.obj" scale="0.01 0.01 0.01"/>                                   
+            </geometry>
+            <material name="gray">
+                <color rgba="0.5 0.5 0.5 1"/>
+            </material>
+        </visual>
+        <collision>
+            <geometry>
+                <mesh filename="../mesh/TVB_mesh/ball_task_tabletennis.obj" scale="0.01 0.01 0.01"/> 
+            </geometry>
+            <sdf resolution="32"/>
+        </collision>
+    </link>
+</robot>

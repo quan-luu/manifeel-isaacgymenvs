@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<robot name="power_2prongs_plug">
+    <link name="power_2prongs_plug">
+        <visual>
+            <geometry>
+                <mesh filename="../mesh/TVB_mesh/power_plug_shape2_Mar3.obj"/>                
+            </geometry>
+            <material name="Blue">
+                <color rgba="0.3 0.3 1 1"/>
+            </material>
+        </visual>
+        <collision>
+            <geometry>
+                <mesh filename="../mesh/TVB_mesh/power_plug_shape2_Mar3.obj"/>
+            </geometry>
+            <sdf resolution="256"/>
+        </collision>
+    </link>
+</robot>

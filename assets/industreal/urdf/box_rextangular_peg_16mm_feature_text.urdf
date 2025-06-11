@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<robot name="box_industreal_tray_insert_round_peg_16mm">
+    <link name="box_industreal_tray_insert_round_peg_16mm">
+        <visual>
+            <geometry>
+                <mesh filename="../mesh/TVB_mesh/box_rectangular_peg_16mm_feature_text.obj" scale="2 2 2"/>
+            </geometry>
+            <material name="Blue">
+                <color rgba="0.3 0.3 1 1"/>
+            </material>
+        </visual>
+        <collision>
+            <geometry>
+                <mesh filename="../mesh/TVB_mesh/box_rectangular_peg_16mm_feature_text.obj" scale="2 2 2"/>
+            </geometry>
+            <sdf resolution="128"/>
+        </collision>
+    </link>
+</robot>

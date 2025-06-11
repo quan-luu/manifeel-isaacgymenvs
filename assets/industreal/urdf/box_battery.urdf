@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<robot name="battery">
+    <link name="battery">
+        <visual>
+            <geometry>
+                <!-- <mesh filename="../mesh/TVB_mesh/box1_high.obj" scale="1.5 1.5 1.5"/>       -->
+                <mesh filename="../mesh/TVB_mesh/battery.obj" scale="0.4 0.4 0.4"/>                 
+            </geometry>
+            <!-- <material name="CardboardYellow">
+                <color rgba="0.76 0.6 0.42 1"/>
+            </material> -->
+        </visual>
+        <collision>
+            <geometry>
+                <mesh filename="../mesh/TVB_mesh/battery.obj" scale="0.4 0.4 0.4"/>                
+            </geometry>
+            <sdf resolution="64"/>
+        </collision>
+    </link>
+</robot>

@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<robot name="box_search">
+    <link name="box">
+        <visual>
+            <geometry>
+                <!-- <mesh filename="../mesh/TVB_mesh/box1_high.obj" scale="1.5 1.5 1.5"/>       -->
+                <mesh filename="../mesh/TVB_mesh/box1_update2.obj" scale="1.2 1.8 1.2"/>                                             -->
+            </geometry>
+            <material name="CardboardYellow">
+                <color rgba="0.76 0.6 0.42 1"/>
+            </material>
+        </visual>
+        <collision>
+            <geometry>
+                <mesh filename="../mesh/TVB_mesh/box1_update2.obj" scale="1.2 1.8 1.2"/>              
+            </geometry>
+            <sdf resolution="128"/>
+        </collision>
+    </link>
+</robot>
