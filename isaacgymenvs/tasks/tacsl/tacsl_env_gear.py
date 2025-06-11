@@ -21,7 +21,7 @@ import isaacgymenvs.tasks.factory.factory_control as fc
 from isaacgymenvs.tacsl_sensors.tacsl_sensors import CameraSensor, TactileRGBSensor, TactileFieldSensor
 from isaacgymenvs.tasks.factory.factory_schema_class_env import FactoryABCEnv
 from isaacgymenvs.tasks.factory.factory_schema_config_env import FactorySchemaConfigEnv
-from isaacgymenvs.tasks.tacsl.tacsl_base import TacSLBase
+from isaacgymenvs.tasks.tacsl.tacsl_base_gear import TacSLBaseGear
 from isaacgymenvs.tacsl_sensors.shear_tactile_viz_utils import visualize_penetration_depth, visualize_tactile_shear_image
 
 
@@ -56,25 +56,28 @@ class TacSLSensors(TactileFieldSensor, TactileRGBSensor, CameraSensor):
         return tactile_sensor_configs
 
     def _compose_tactile_force_field_configs(self):
-        plug_rb_names = self.gym.get_actor_rigid_body_names(self.env_ptrs[0], self.plug_actor_id_env)
+        plug_rb_names = self.gym.get_actor_rigid_body_names(self.env_ptrs[0], self.gear_medium_actor_id_env)
+        # print(f"👌 plug_rb_names: {plug_rb_names}")
         tactile_shear_field_config = dict([
             ('name', 'tactile_force_field_left'),
             ('elastomer_actor_name', 'franka'), ('elastomer_link_name', 'elastomer_left'),
             ('elastomer_tip_link_name', 'elastomer_tip_left'),
             ('elastomer_parent_urdf_path', self.asset_file_paths["franka"]),
             ('indenter_urdf_path', self.asset_file_paths["plug"]),
-            ('indenter_actor_name', 'plug'), ('indenter_link_name', plug_rb_names[0]),
+            ('indenter_actor_name', 'gear_medium'), ('indenter_link_name', plug_rb_names[0]),
             ('actor_handle', self.actor_handles['franka']),
             ('compliance_stiffness', self.cfg_task.env.compliance_stiffness),
             ('compliant_damping', self.cfg_task.env.compliant_damping),
             ('use_acceleration_spring', False)
         ])
-        tactile_shear_field_config_left = tactile_shear_field_config.copy()
         tactile_shear_field_config_right = tactile_shear_field_config.copy()
         tactile_shear_field_config_right['name'] = 'tactile_force_field_right'
         tactile_shear_field_config_right['elastomer_link_name'] = 'elastomer_right'
         tactile_shear_field_config_right['elastomer_tip_link_name'] = 'elastomer_tip_right'
-        tactile_shear_field_configs = [tactile_shear_field_config_left, tactile_shear_field_config_right]
+
+        # tactile_shear_field_configs = [tactile_shear_field_config_left, tactile_shear_field_config_right]
+        tactile_shear_field_configs = [tactile_shear_field_config_right]
+        # tactile_shear_field_configs = [tactile_shear_field_config_left]
         return tactile_shear_field_configs
 
     def get_tactile_force_field_tensors_dict(self):
@@ -139,7 +142,7 @@ class TacSLSensors(TactileFieldSensor, TactileRGBSensor, CameraSensor):
                                                              tactile_ff_configs)
 
 
-class TacSLEnvGear(TacSLBase, TacSLSensors, FactoryABCEnv):
+class TacSLEnvGear(TacSLBaseGear, TacSLSensors, FactoryABCEnv):
 
     def __init__(self, cfg, rl_device, sim_device, graphics_device_id, headless, virtual_screen_capture, force_render):
         """Initialize instance variables. Initialize environment superclass. Acquire tensors."""
@@ -171,6 +174,7 @@ class TacSLEnvGear(TacSLBase, TacSLSensors, FactoryABCEnv):
         ][
             "yaml"
         ]  # strip superfluous nesting
+        print(f"✅ Loaded asset info from {asset_info_path}")
 
     def create_envs(self):
         import inspect
@@ -209,20 +213,23 @@ class TacSLEnvGear(TacSLBase, TacSLSensors, FactoryABCEnv):
         gear_large_file = "industreal_gear_large.urdf"
         base_file = "industreal_gear_base.urdf"
 
-        print(f'test👌suceessfully loaded gear files')
+        plug_asset_file_path = os.path.join(os.path.abspath(urdf_root), gear_medium_file)
+        self.asset_file_paths['plug'] = plug_asset_file_path
+        print(f'👌loaded medium gear (plug) file: {plug_asset_file_path}')
 
         gear_options = gymapi.AssetOptions()
         gear_options.flip_visual_attachments = False
         gear_options.fix_base_link = False
         gear_options.thickness = 0.0  # default = 0.02
         gear_options.density = self.asset_info_gears.gears.density  # default = 1000.0
+        print(f"👌 gear density: {gear_options.density}")
         gear_options.armature = 0.0  # default = 0.0
         gear_options.use_physx_armature = True
         gear_options.linear_damping = 0.5  # default = 0.0
         gear_options.max_linear_velocity = 1000.0  # default = 1000.0
         gear_options.angular_damping = 0.5  # default = 0.5
         gear_options.max_angular_velocity = 64.0  # default = 64.0
-        gear_options.disable_gravity = True
+        gear_options.disable_gravity = True # default = False
         gear_options.enable_gyroscopic_forces = True
         gear_options.default_dof_drive_mode = gymapi.DOF_MODE_NONE
         gear_options.use_mesh_materials = False
@@ -354,7 +361,7 @@ class TacSLEnvGear(TacSLBase, TacSLSensors, FactoryABCEnv):
             gear_small_handle = self.gym.create_actor(
                 env_ptr, gear_small_asset, gear_pose, "gear_small", i, 0, 0
             )
-            # self.actor_handles["gear_small"] = gear_small_handle
+            self.actor_handles["gear_small"] = gear_small_handle
             # self.actor_ids_sim["gear_small"].append(actor_count)
             self.gear_small_actor_ids_sim.append(actor_count)
             actor_count += 1
@@ -363,7 +370,7 @@ class TacSLEnvGear(TacSLBase, TacSLSensors, FactoryABCEnv):
             gear_medium_handle = self.gym.create_actor(
                 env_ptr, gear_medium_asset, gear_pose, "gear_medium", i, 0, 0
             )
-            # self.actor_handles['gear_medium'] = gear_medium_handle
+            self.actor_handles['gear_medium'] = gear_medium_handle
             # self.actor_ids_sim["gear_medium"].append(actor_count)
             self.gear_medium_actor_ids_sim.append(actor_count)
             actor_count += 1
@@ -372,7 +379,7 @@ class TacSLEnvGear(TacSLBase, TacSLSensors, FactoryABCEnv):
             gear_large_handle = self.gym.create_actor(
                 env_ptr, gear_large_asset, gear_pose, "gear_large", i, 0, 0
             )
-            # self.actor_handles['gear_large'] = gear_large_handle
+            self.actor_handles['gear_large'] = gear_large_handle
             # self.actor_ids_sim["gear_large"].append(actor_count)
             self.gear_large_actor_ids_sim.append(actor_count)
             actor_count += 1
@@ -381,7 +388,7 @@ class TacSLEnvGear(TacSLBase, TacSLSensors, FactoryABCEnv):
             base_handle = self.gym.create_actor(
                 env_ptr, base_asset, base_pose, "base", i, 0, 0
             )
-            # self.actor_handles['base'] = base_handle
+            self.actor_handles['base'] = base_handle
             # self.actor_ids_sim["base"].append(actor_count)
             self.base_actor_ids_sim.append(actor_count)
             actor_count += 1
@@ -534,10 +541,10 @@ class TacSLEnvGear(TacSLBase, TacSLSensors, FactoryABCEnv):
             env_ptr, gear_small_handle, "gear_small", gymapi.DOMAIN_ENV
         )
         self.gear_medium_body_id_env = self.gym.find_actor_rigid_body_index(
-            env_ptr, gear_medium_handle, "gear_small", gymapi.DOMAIN_ENV
+            env_ptr, gear_medium_handle, "gear_medium", gymapi.DOMAIN_ENV
         )
         self.gear_large_body_id_env = self.gym.find_actor_rigid_body_index(
-            env_ptr, gear_large_handle, "gear_small", gymapi.DOMAIN_ENV
+            env_ptr, gear_large_handle, "gear_large", gymapi.DOMAIN_ENV
         )
         self.base_body_id_env = self.gym.find_actor_rigid_body_index(
             env_ptr, base_handle, "base", gymapi.DOMAIN_ENV

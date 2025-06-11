@@ -136,7 +136,7 @@ class TacSLTaskGear(TacSLTaskImageAugmentation, TacSLEnvGear, FactoryABCTask):
         self.base_keypoint_origin_local = torch.tensor([0.0, 0.0, 0.0], device=self.device).unsqueeze(0).repeat(self.num_envs, 1)
         ## need check
         insertion_height = (1 - self.cfg_task.rl.insertion_frac) * self.asset_info_gears.gears.height
-        print(f'🔼📏insertion_height {insertion_height}')
+        print(f'📏insertion_height {insertion_height}')
         # need cheack self.base_keypoint_origin_local[:, 2]
         self.base_keypoint_origin_local[:, 2] = insertion_height    
 
@@ -397,7 +397,7 @@ class TacSLTaskGear(TacSLTaskImageAugmentation, TacSLEnvGear, FactoryABCTask):
             if self.cfg_task.env.use_tactile_field_obs:
                 # Define the mappings for tactile force fields and depths
                 keys = [
-                    ('tactile_force_field_left', 'tactile_depth_left'),
+                    # ('tactile_force_field_left', 'tactile_depth_left'),
                     ('tactile_force_field_right', 'tactile_depth_right')
                 ]
                 for force_field_key, depth_key in keys:
@@ -713,17 +713,26 @@ class TacSLTaskGear(TacSLTaskImageAugmentation, TacSLEnvGear, FactoryABCTask):
 
             self.gym.simulate(self.sim)
             self.refresh_base_tensors()
-            # cal medium_gear position in Z axis (based on gripper)
+            
+            # Calculate medium gear position in Z axis (based on gripper)
             ee_to_gear_tip_pos_local = torch.zeros_like(self.fingertip_midpoint_pos)
             gear_half_height = self.asset_info_gears.shafts.height / 2.0  # half height of gear
-            print(f'👆###👆#')
-            print(f'gear_half_height  {gear_half_height}')
-            tuning_z = -0.03
-            tuning_x = -0.0178  # (-0.017 )  neg inside
-            
-            # set medium_gear in the middle of gripper
-            ee_to_gear_tip_pos_local[:, 2] = -gear_half_height  + tuning_z
-            ee_to_gear_tip_pos_local[:, 0] = + tuning_x
+            print(f'👆gear_half_height  {gear_half_height}')
+
+            # offset along three axes
+            offset_x = 0.018           
+            offset_y = 0.0      
+            offset_z = -gear_half_height + 0.07
+
+            # Set medium gear in the middle of gripper
+            ee_to_gear_tip_pos_local[:, 0] = offset_x
+            ee_to_gear_tip_pos_local[:, 1] = offset_y
+            ee_to_gear_tip_pos_local[:, 2] = offset_z
+
+            # # ✨ flip 🐓 xyzw
+            # print(f'🐓, {self.identity_quat}')
+            # tuning_quat = torch.tensor([0.707, 0, 0, 0.707], device=self.device).unsqueeze(0).repeat(self.num_envs, 1)
+            # self.identity_quat = torch_jit_utils.quat_mul(tuning_quat, self.identity_quat)
 
             # cal medium_gear pos quat in whold frame
             world_to_gear_tip_quat, world_to_gear_tip_pos = torch_jit_utils.tf_combine(
@@ -745,63 +754,13 @@ class TacSLTaskGear(TacSLTaskImageAugmentation, TacSLEnvGear, FactoryABCTask):
                 self.identity_quat,    
                 gear_tip_to_base_local  
             )
+            # # ✨ flip 🐓 xyzw   # 0.866, 0.5, 0, 0]
+            quat_flip_x = torch.tensor([1, 0, 0, 0], device=self.device).unsqueeze(0).repeat(self.num_envs, 1)
+            world_to_gear_base_quat = torch_jit_utils.quat_mul(quat_flip_x, world_to_gear_base_quat)
 
             # set medium_gear's  root state
             self.gear_medium_pos[:, :] = world_to_gear_base_pos
             self.gear_medium_quat[:, :] = world_to_gear_base_quat
-
-
-        # if before_move_to_grasp:
-        #     # Generate randomized downward displacement based on curriculum
-        #     curr_curriculum_disp_range = (
-        #         self.curr_max_disp - self.cfg_task.rl.curriculum_height_bound[0]
-        #     )
-        #     self.curriculum_disp = self.cfg_task.rl.curriculum_height_bound[
-        #         0
-        #     ] + curr_curriculum_disp_range * (
-        #         torch.rand((self.num_envs,), dtype=torch.float32, device=self.device)
-        #     )
-
-        #     # Generate gear pos noise
-        #     self.gear_medium_pos_xyz_noise = 2 * (
-        #         torch.rand((self.num_envs, 3), dtype=torch.float32, device=self.device)
-        #         - 0.5
-        #     )
-        #     self.gear_medium_pos_xyz_noise = (
-        #         self.gear_medium_pos_xyz_noise
-        #         @ torch.diag(
-        #             torch.tensor(
-        #                 self.cfg_task.randomize.gear_pos_xyz_noise,
-        #                 dtype=torch.float32,
-        #                 device=self.device,
-        #             )
-        #         )
-        #     )
-
-        # Set medium gear pos to assembled state, but offset gear Z-coordinate by height of gear,
-        # minus curriculum displacement
-        ### self.gear_medium_pos[:, :] = self.base_pos.clone()
-        ### self.gear_medium_pos[:, 2] += self.asset_info_gears.shafts.height
-        # self.gear_medium_pos[:, 2] -= self.curriculum_disp
-
-        # TODO: add random parameters to TACSLTaskGear and modify the following code accordingly
-        # randomization = False
-        # if randomization:
-        #     # Apply XY noise to gears not partially inserted onto gear shafts
-        #     gear_base_top_height = (
-        #         self.base_pos[:, 2]
-        #         + self.asset_info_gears.base.height
-        #         + self.asset_info_gears.shafts.height
-        #     )
-        #     gear_partial_insert_idx = np.argwhere(
-        #         self.gear_medium_pos[:, 2].cpu().numpy()
-        #         > gear_base_top_height.cpu().numpy()
-        #     ).squeeze()
-        #     self.gear_medium_pos[
-        #         gear_partial_insert_idx, :2
-        #     ] += self.gear_medium_pos_xyz_noise[gear_partial_insert_idx, :2]
-
-        ### self.gear_medium_quat[:, :] = self.identity_quat.clone()
 
         # Stabilize plug
         self.gear_medium_linvel[:, :] = 0.0
@@ -946,44 +905,50 @@ class TacSLTaskGear(TacSLTaskImageAugmentation, TacSLEnvGear, FactoryABCTask):
     def _check_gear_plug_close_to_socket(self):
         """Check if plug is close to socket."""
 
-        keypoint_dist = torch.norm(self.keypoints_socket - self.keypoints_plug, p=2, dim=-1)
+        keypoint_dist = torch.norm(self.keypoints_base - self.keypoints_gear, p=2, dim=-1)
 
-        is_plug_close_to_socket = torch.where(torch.mean(keypoint_dist, dim=-1) < self.cfg_task.rl.close_error_thresh,
-                                              torch.ones_like(self.progress_buf),
-                                              torch.zeros_like(self.progress_buf))        
+        # is_gear_close_to_base = torch.where(self.cfg_task.rl.close_error_thresh_lower < torch.mean(keypoint_dist, dim=-1) &
+        #                                     torch.mean(keypoint_dist, dim=-1)< self.cfg_task.rl.close_error_thresh_upper,
+        #                                       torch.ones_like(self.progress_buf),
+        #                                       torch.zeros_like(self.progress_buf))    
         
-        return is_plug_close_to_socket
+        is_gear_close_to_base = torch.where(torch.mean(keypoint_dist, dim=-1) < self.cfg_task.rl.close_error_thresh,
+                                              torch.ones_like(self.progress_buf),
+                                              torch.zeros_like(self.progress_buf)) 
 
-    def _check_gear_plug_is_centered_on_socket(self):
-        """Get distance of the tip of the peg below the level of the socket, when the peg is not centered.
-        Used to penalize a common failure case when the peg is upright beside the socket and not inside the socket
-        """
-        plug_tip_pos = self.plug_pos
-        _, socket_tip_pos = torch_jit_utils.tf_combine(self.socket_quat, self.socket_pos,
-                                                       self.identity_quat, self.socket_tip_pos_local)
-        planar_threshold = self.socket_diameters * 0.6
-        is_plug_centered = torch.norm((plug_tip_pos - socket_tip_pos)[:, :2], dim=-1) < planar_threshold.squeeze(-1)
+        return is_gear_close_to_base
 
-        return is_plug_centered
+    # def _check_gear_plug_is_centered_on_socket(self):
+    #     """Get distance of the tip of the peg below the level of the socket, when the peg is not centered.
+    #     Used to penalize a common failure case when the peg is upright beside the socket and not inside the socket
+    #     """
+    #     plug_tip_pos = self.plug_pos
+    #     _, socket_tip_pos = torch_jit_utils.tf_combine(self.socket_quat, self.socket_pos,
+    #                                                    self.identity_quat, self.socket_tip_pos_local)
+    #     planar_threshold = self.socket_diameters * 0.6
+    #     is_plug_centered = torch.norm((plug_tip_pos - socket_tip_pos)[:, :2], dim=-1) < planar_threshold.squeeze(-1)
 
-    def _check_gear_plug_is_upright(self):
-        """Check if plug is upright/aligned with socket."""
-        principal_axis = [0., 0., 1.]
-        principal_axis_tensor = torch.tensor(principal_axis, device=self.device).unsqueeze(0).expand(self.num_envs, 3)
-        plug_principal_axis = torch_utils.quat_rotate(self.plug_quat, principal_axis_tensor)
-        socket_principal_axis = torch_utils.quat_rotate(self.socket_quat, principal_axis_tensor)
-        cos_angle_between_principal_axis = torch.sum(plug_principal_axis * socket_principal_axis, axis=-1)
+    #     return is_plug_centered
 
-        upright_angle_threshold = 15    # degrees
-        upright_angle_threshold = np.deg2rad(upright_angle_threshold)
+    # def _check_gear_plug_is_upright(self):
+    #     """Check if plug is upright/aligned with socket."""
+    #     principal_axis = [0., 0., 1.]
+    #     principal_axis_tensor = torch.tensor(principal_axis, device=self.device).unsqueeze(0).expand(self.num_envs, 3)
+    #     plug_principal_axis = torch_utils.quat_rotate(self.plug_quat, principal_axis_tensor)
+    #     socket_principal_axis = torch_utils.quat_rotate(self.socket_quat, principal_axis_tensor)
+    #     cos_angle_between_principal_axis = torch.sum(plug_principal_axis * socket_principal_axis, axis=-1)
 
-        is_plug_upright = cos_angle_between_principal_axis > np.cos(upright_angle_threshold)
-        return is_plug_upright
+    #     upright_angle_threshold = 15    # degrees
+    #     upright_angle_threshold = np.deg2rad(upright_angle_threshold)
+
+    #     is_plug_upright = cos_angle_between_principal_axis > np.cos(upright_angle_threshold)
+    #     return is_plug_upright
 
     def _check_success(self):
         """Check for task success."""
-        task_success = torch.ones_like(self.progress_buf)
+        # task_success = torch.ones_like(self.progress_buf)
 
+        task_success = self._check_gear_plug_close_to_socket()
 
         # if self.cfg_task.env.task_type == 'insertion':
         #     task_success = self._check_gear_plug_close_to_socket()
