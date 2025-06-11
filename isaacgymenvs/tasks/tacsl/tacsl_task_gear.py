@@ -729,11 +729,6 @@ class TacSLTaskGear(TacSLTaskImageAugmentation, TacSLEnvGear, FactoryABCTask):
             ee_to_gear_tip_pos_local[:, 1] = offset_y
             ee_to_gear_tip_pos_local[:, 2] = offset_z
 
-            # # ✨ flip 🐓 xyzw
-            # print(f'🐓, {self.identity_quat}')
-            # tuning_quat = torch.tensor([0.707, 0, 0, 0.707], device=self.device).unsqueeze(0).repeat(self.num_envs, 1)
-            # self.identity_quat = torch_jit_utils.quat_mul(tuning_quat, self.identity_quat)
-
             # cal medium_gear pos quat in whold frame
             world_to_gear_tip_quat, world_to_gear_tip_pos = torch_jit_utils.tf_combine(
                 self.fingertip_midpoint_quat,  # Gripper current orientation
@@ -742,11 +737,73 @@ class TacSLTaskGear(TacSLTaskImageAugmentation, TacSLEnvGear, FactoryABCTask):
                 ee_to_gear_tip_pos_local       
             )
 
+            # Rotate gear in hand
+            # plug_noise_rot_in_gripper = \
+            #     2 * (torch.rand((self.num_envs, 3), dtype=torch.float32, device=self.device) - 0.5)  # [-1, 1]
+            # plug_noise_rot_in_gripper *= torch.tensor(self.cfg_task.randomize.plug_noise_rot_in_gripper,
+            #                                         device=self.device).expand(self.num_envs, 3)
+            
+            # # z is along the axis of the gripper so it has no effects for round pegs
+            # # y rotates in and out of the gripper axis
+            # # x rot should be zero
+            # zero_translation = torch.zeros_like(world_to_gear_tip_pos)
+            # ee_to_gear_tip_rot_quat = torch_utils.quat_from_euler_xyz(plug_noise_rot_in_gripper[:, 0],
+            #                                                         plug_noise_rot_in_gripper[:, 1],
+            #                                                         plug_noise_rot_in_gripper[:, 2])
+
+            # world_to_gear_tip_quat, world_to_gear_tip_pos = torch_jit_utils.tf_combine(world_to_gear_tip_quat,
+            #                                                                         world_to_gear_tip_pos,
+            #                                                                         ee_to_gear_tip_rot_quat,
+            #                                                                         zero_translation)
+
+            # Offset from gear tip frame to handle-aligned frame (in local gear frame)
+            offset = torch.tensor([[0.017, 0.0, 0.08]], device=self.device).expand(self.num_envs, 3)
+
+            # Step 1: Move to handle-aligned frame
+            handle_offset_translation = offset
+            neg_handle_offset_translation = -offset
+
+            # Step 2: Generate rotation (same as before)
+            plug_noise_rot_in_gripper = 2 * (torch.rand((self.num_envs, 3), dtype=torch.float32, device=self.device) - 0.5)
+            plug_noise_rot_in_gripper *= torch.tensor(self.cfg_task.randomize.plug_noise_rot_in_gripper,
+                                                    device=self.device).expand(self.num_envs, 3)
+
+            # Note: Still zero x-rot
+            ee_to_gear_handle_rot_quat = torch_utils.quat_from_euler_xyz(plug_noise_rot_in_gripper[:, 0],
+                                                                        plug_noise_rot_in_gripper[:, 1],
+                                                                        plug_noise_rot_in_gripper[:, 2])
+
+            # Step 3: Apply transform:
+            # a) move to handle frame
+            # b) rotate
+            # c) move back to gear tip frame
+
+            # a) Translate gear tip -> handle-aligned frame
+            _, temp_pos = torch_jit_utils.tf_combine(
+                world_to_gear_tip_quat, world_to_gear_tip_pos,
+                self.identity_quat,
+                handle_offset_translation
+            )
+
+            # b) Rotate around handle-aligned frame
+            temp_quat, temp_pos = torch_jit_utils.tf_combine(
+                world_to_gear_tip_quat, temp_pos,
+                ee_to_gear_handle_rot_quat,
+                torch.zeros_like(temp_pos)
+            )
+
+            identity_quat = torch.tensor([0, 0, 0, 1], device=self.device).expand(self.num_envs, 4)
+            # c) Translate back: handle-aligned frame -> gear tip
+            world_to_gear_tip_quat, world_to_gear_tip_pos = torch_jit_utils.tf_combine(
+                temp_quat, temp_pos,
+                self.identity_quat,
+                neg_handle_offset_translation
+            )
+
+
             # cal medium_gear to root position
             gear_tip_to_base_local = torch.zeros_like(self.fingertip_midpoint_pos)
             gear_tip_to_base_local[:, 2] = gear_half_height  
-
-
 
             world_to_gear_base_quat, world_to_gear_base_pos = torch_jit_utils.tf_combine(
                 world_to_gear_tip_quat,
