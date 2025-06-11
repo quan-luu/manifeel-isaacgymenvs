@@ -38,6 +38,7 @@ import hydra
 import numpy as np
 import os
 import torch
+import cv2
 
 from isaacgym import gymapi
 from isaacgym.torch_utils import tf_combine
@@ -45,6 +46,7 @@ from isaacgymenvs.tacsl_sensors.tacsl_sensors import CameraSensor, TactileRGBSen
 from isaacgymenvs.tasks.factory.factory_schema_class_env import FactoryABCEnv
 from isaacgymenvs.tasks.factory.factory_schema_config_env import FactorySchemaConfigEnv
 from isaacgymenvs.tasks.tacsl.tacsl_base import TacSLBase
+from isaacgymenvs.tacsl_sensors.shear_tactile_viz_utils import visualize_penetration_depth, visualize_tactile_shear_image
 
 
 class TacSLSensors(TactileFieldSensor, TactileRGBSensor, CameraSensor):
@@ -103,6 +105,7 @@ class TacSLSensors(TactileFieldSensor, TactileRGBSensor, CameraSensor):
 
         tactile_force_field_dict_raw = self.get_tactile_shear_force_fields()
         tactile_force_field_dict_processed = dict()
+        tactile_depth_dict_processed = dict()
         nrows, ncols = self.cfg_task.env.num_shear_rows, self.cfg_task.env.num_shear_cols
 
         debug = False   # Debug visualization
@@ -113,6 +116,7 @@ class TacSLSensors(TactileFieldSensor, TactileRGBSensor, CameraSensor):
                  tactile_shear_force.view((self.num_envs, nrows, ncols, 2))),
                 dim=-1)
             tactile_force_field_dict_processed[k] = tactile_force_field
+            tactile_depth_dict_processed[k] = penetration_depth.view((self.num_envs, nrows, ncols))
 
             if debug:
                 env_viz_id = 0
@@ -127,7 +131,7 @@ class TacSLSensors(TactileFieldSensor, TactileRGBSensor, CameraSensor):
                     penetration_depth[env_viz_id].view((nrows, ncols)).cpu().numpy(),
                     resolution=5, depth_multiplier=300.)
                 cv2.imshow(f'FF Penetration Depth {k}', penetration_depth_viz.swapaxes(0, 1))
-        return tactile_force_field_dict_processed
+        return tactile_force_field_dict_processed, tactile_depth_dict_processed
 
     def _create_sensors(self):
         self.camera_spec_dict = dict()
@@ -226,7 +230,7 @@ class TacSLEnvInsertion(TacSLBase, TacSLSensors, FactoryABCEnv):
         plug_options.max_linear_velocity = 1000.0  # default = 1000.0
         plug_options.angular_damping = 0.0  # default = 0.5
         plug_options.max_angular_velocity = 64.0  # default = 64.0
-        plug_options.disable_gravity = False
+        plug_options.disable_gravity = True # default = False
         plug_options.enable_gyroscopic_forces = True
         plug_options.default_dof_drive_mode = gymapi.DOF_MODE_NONE
         plug_options.use_mesh_materials = False
@@ -295,9 +299,9 @@ class TacSLEnvInsertion(TacSLBase, TacSLSensors, FactoryABCEnv):
         table_pose.r = gymapi.Quat(0.0, 0.0, 0.0, 1.0)
 
         self.env_ptrs = []
-        self.table_handles = []
+        # self.table_handles = []
         self.shape_ids = []
-        self.table_actor_ids_sim = []  # within-sim indices
+        # self.table_actor_ids_sim = []  # within-sim indices
         self.env_subassembly_id = []
         self.actor_handles = {}
         self.actor_ids_sim = defaultdict(list)
