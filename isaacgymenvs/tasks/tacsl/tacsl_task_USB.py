@@ -390,7 +390,7 @@ class TacSLTaskUSB(TacSLTaskImageAugmentation, TacSLEnvInsertion, FactoryABCTask
             if self.cfg_task.env.use_tactile_field_obs:
                 # Define the mappings for tactile force fields and depths
                 keys = [
-                    ('tactile_force_field_left', 'tactile_depth_left'),
+                    # ('tactile_force_field_left', 'tactile_depth_left'),
                     ('tactile_force_field_right', 'tactile_depth_right')
                 ]
                 for force_field_key, depth_key in keys:

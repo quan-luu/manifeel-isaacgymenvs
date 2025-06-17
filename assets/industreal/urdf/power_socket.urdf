@@ -3,15 +3,23 @@
     <link name="power_socekt_medium">
         <visual>
             <geometry>
-                <mesh filename="../mesh/TVB_mesh/power_socekt_medium.obj"/>                    
+                <mesh filename="../mesh/TVB_mesh/power_socekt_medium.obj"/>                     
             </geometry>
-            <material name="LightRed">
+            <!-- <material name="LightRed">
                 <color rgba="1 0.3 0.3 1"/>
-            </material>
+            </material> -->
+            <!-- <material name="LightBlack">
+                <color rgba="0.3 0.3 0.3 1"/>
+            </material> -->
+
+                        <!-- <material name="Blue">
+                <color rgba="0.3 0.3 1 1"/>
+            </material> -->
         </visual>
         <collision>
             <geometry>
-                <mesh filename="../mesh/TVB_mesh/power_socekt_medium.obj"/>               
+                <mesh filename="../mesh/TVB_mesh/power_socekt_medium.obj"/> 
+                <!-- <mesh filename="../mesh/TVB_mesh/power_2prongs_socket.obj"/>                -->
             </geometry>
             <sdf resolution="128"/>
         </collision>
