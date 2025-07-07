@@ -1,19 +1,26 @@
 <?xml version="1.0"?>
-<robot name="classification_ball">
-    <link name="ball">
-        <visual>
-            <geometry>
-                <mesh filename="../mesh/TVB_mesh/ball_task_tabletennis.obj"/>                                   
-            </geometry>
+<robot name="pingpong_ball">
+	<link name="pingpong_ball">
+		<visual>
+			<origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0"/>
+			<geometry>
+				<mesh filename="../mesh/TVB_mesh/sphere.obj"/>
+			</geometry>
             <material name="white">
                 <color rgba="1 1 1 1"/>
             </material>
-        </visual>
-        <collision>
-            <geometry>
-                <mesh filename="../mesh/TVB_mesh/ball_task_tabletennis.obj"/> 
-            </geometry>
-            <sdf resolution="128"/>
-        </collision>
-    </link>
+		</visual>
+		<collision>
+			<origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0"/>
+			<geometry>
+				<mesh filename="../mesh/TVB_mesh/sphere.obj"/>
+			</geometry>
+            <sdf resolution="256"/>
+		</collision>
+		<!-- <inertial>
+			<origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0"/>
+            <mass value="0.025"/>
+            <inertia ixx="1.14764e-7" iyy="8.89985e-8" izz="1.14738e-7" ixy="0.0" ixz="-4.72875e-14" iyz="0.0"/>
+		</inertial> -->
+	</link>
 </robot>

@@ -69,7 +69,7 @@ class TacSLTaskClassBall(TacSLTaskImageAugmentation, TacSLEnvBall, FactoryABCTas
         # 🔦 randomize light parameters
 
         l_color = gymapi.Vec3(1.0, 0.6, 0.2)
-        # l_color = gymapi.Vec3(0.0, 0.0, 0.0)        
+        # l_color = gymapi.Vec3(0.7, 0.7, 0.7)        
         l_ambient = gymapi.Vec3(0.0, 0.0, 0.0)       # medium env light
         # l_direction = gymapi.Vec3(0.0, -1.0, -0.5)   # light direction
         l_direction = gymapi.Vec3(0.5, 0.5, 0.0)   
@@ -402,16 +402,17 @@ class TacSLTaskClassBall(TacSLTaskImageAugmentation, TacSLEnvBall, FactoryABCTas
         if self.cfg_task.env.use_shear_force:
             tactile_force_field_dict, tactile_depth_dict = self.get_tactile_force_field_tensors_dict()
             if self.cfg_task.env.use_tactile_field_obs:
-                # Define the mappings for tactile force fields and depths
-                keys = [
-                    # ('tactile_force_field_left', 'tactile_depth_left'),
-                    ('tactile_force_field_right', 'tactile_depth_right')
-                ]
-                for force_field_key, depth_key in keys:
-                    self.obs_dict[force_field_key][:] = tactile_force_field_dict[force_field_key]
-                    self.obs_dict[depth_key][:] = tactile_depth_dict[force_field_key]
-                    if self.cfg_task.env.zero_out_normal_force_field_obs:
-                        self.obs_dict[force_field_key][..., 0] *= 0.0
+                # Sum the two tactile fields
+                self.obs_dict['tactile_force_field_right'][:] = (
+                    tactile_force_field_dict['tactile_force_field_right'] +
+                    tactile_force_field_dict['tactile_force_field_right_ppball']
+                )
+                self.obs_dict['tactile_depth_right'][:] = (
+                    tactile_depth_dict['tactile_force_field_right'] +
+                    tactile_depth_dict['tactile_force_field_right_ppball']
+                )
+                if self.cfg_task.env.zero_out_normal_force_field_obs:
+                    self.obs_dict['tactile_force_field_right'][..., 0] *= 0.0
         return self.obs_dict
 
     def compute_reward(self):
@@ -438,59 +439,12 @@ class TacSLTaskClassBall(TacSLTaskImageAugmentation, TacSLEnvBall, FactoryABCTas
         # print("🥉🔍 keypoint_z_diff:", keypoint_z_diff[:1].cpu().numpy())
         # print("🦊 keypoints_gear:", self.keypoints_gear.cpu().numpy())
 
-
         # Compute the mean z difference across keypoints for each environment
         keypoint_z_dist = torch.mean(keypoint_z_diff, dim=-1)
         # Define reward as the negative of the mean z difference
         keypoint_reward = -keypoint_z_dist
 
         self.rew_buf[:] = keypoint_reward
-
-    '''    
-    def _update_rew_buf(self):
-        """Compute reward at the current timestep."""
-
-        keypoint_diff = self.keypoints_base - self.keypoints_gear
-        keypoint_dist = torch.mean(torch.norm(keypoint_diff, p=2, dim=-1), dim=-1)
-        keypoint_reward = -keypoint_dist
-
-        #uncentered_plug_dist_below_socket = self._get_peg_tip_distance_when_not_centered()
-        uncentered_plug_dist_below_socket = 0.0
-
-        # a, b = 50, 2
-        a, b = 300, 0.0001
-        a, b = 50, 0.0001
-        keypoint_reward_exp = 1. / (torch.exp(a * keypoint_reward) + b + torch.exp(-a * keypoint_reward))
-        if self.cfg_task.rl.use_shaped_keypoint_reward:
-            # keypoint_reward_exp[uncentered_plug_dist_below_socket > 0] *= -1.  # penalize if peg is beside socket
-            keypoint_reward[uncentered_plug_dist_below_socket > 0] *= 10.  # penalize if peg is beside socket
-        action_penalty = torch.norm(self._actions, p=2, dim=-1)
-        action_grad_penalty = torch.norm(self._actions - self.prev_actions, p=2, dim=-1)
-        contact_penalty = torch.norm(self.contact_force_pairwise[:, self.base_body_id_env], p=2, dim=-1).sum(1)
-        contact_force_table = torch.norm(self.contact_force_pairwise[:, self.table_body_id], p=2, dim=-1).sum(1)
-        gear_base_force = self.contact_force_pairwise[:, self.gear_medium_body_id_env, self.base_body_id_env].clone()
-        contact_force_plug_socket = torch.norm(gear_base_force, p=1, dim=-1)
-        finger_body_ids = [self.franka_body_ids_env['panda_leftfinger'], self.franka_body_ids_env['panda_rightfinger']]
-        base_fingers_force = self.contact_force_pairwise[:, self.base_body_id_env, finger_body_ids].clone()
-        contact_force_socket_fingers = torch.norm(base_fingers_force, p=2, dim=-1).sum(1)
-
-        # if self.cfg_task.rl.use_shaped_contact_pen:
-        #     # allow more contact interactions at the socket hole
-        #     plug_tip_pos = self.gear_pos
-        #     _, socket_tip_pos = torch_jit_utils.tf_combine(self.socket_quat, self.socket_pos,
-        #                                                    self.identity_quat, self.socket_tip_pos_local)
-        #     contact_rich_region_size_factor = self.cfg_task.rl.contact_rich_region_size_factor  # 0.1
-        #     planar_threshold = self.socket_diameters * contact_rich_region_size_factor
-        #     # is_tip_centre_on_path
-        #     is_plug_centered = torch.norm((plug_tip_pos - socket_tip_pos)[:, :2], dim=-1) < planar_threshold.squeeze(-1)
-
-        #     # if is_plug_centered, reduce the contact penalty by a scale factor
-        #     contact_pen_reduction_scalar = self.cfg_task.rl.contact_pen_reduction_scalar  # = 0.001
-        #     contact_penalty = (contact_penalty * (1 - is_plug_centered.float()) +
-        #                        contact_penalty * (is_plug_centered.float() * contact_pen_reduction_scalar))
-        
-        self.rew_buf[:] = keypoint_reward
-    '''
 
     def reset_idx(self, env_ids):
         """Reset specified environments."""
@@ -669,10 +623,21 @@ class TacSLTaskClassBall(TacSLTaskImageAugmentation, TacSLEnvBall, FactoryABCTas
             + base_noise_xy[:, 1]
         )
 
+        # self.base_pos[:, 0] = (
+        #     self.robot_base_pos[:, 0]
+        #     + self.cfg_task.randomize.base_pos_xy_initial[0]
+        # )
+        # self.base_pos[:, 1] = (
+        #     self.robot_base_pos[:, 1]
+        #     + self.cfg_task.randomize.base_pos_xy_initial[1]
+        # )
+
         # TO-DO: Add initial base poses paremeters to TacSLTaskGear.yaml
         # mimicking the socket pose from TacSLTaskInsertion.yaml
         # socket_pos_xyz_initial: [0.5, 0.0, 0.01] 
         self.base_pos[:, 2] = 0.01 + base_noise_z
+
+        # self.base_pos[:, 2] = 0.005
 
         # Set gear base rot
         self.base_quat[:] = self.identity_quat
@@ -708,10 +673,10 @@ class TacSLTaskClassBall(TacSLTaskImageAugmentation, TacSLEnvBall, FactoryABCTas
         )
         # Set small and large gear pos to be pos in assembled state, plus vertical offset to prevent initial collision
         self.gear_small_pos[:, :] = self.base_pos + torch.tensor(
-            [0.0, 0.0, 0.002], device=self.device
+            [0.0, -0.035, 0.001], device=self.device
         ) + random_offset
         self.gear_large_pos[:, :] = self.base_pos + torch.tensor(
-            [-0.1, 0.0, 0.000], device=self.device
+            [-0.1, 0.0, 0.001], device=self.device
         )
 
         # Set small and large gear rot
@@ -756,7 +721,7 @@ class TacSLTaskClassBall(TacSLTaskImageAugmentation, TacSLEnvBall, FactoryABCTas
 
             # Set medium gear position: base_pos + fixed z offset + medium random offset
             self.gear_medium_pos[:, :] = self.base_pos + torch.tensor(
-                [0.0, 0.0, 0.002], device=self.device
+                [0.0, -0.01, 0.001], device=self.device
             ) + medium_random_offset
             self.gear_medium_quat[:, :] = self.identity_quat
 
@@ -833,7 +798,7 @@ class TacSLTaskClassBall(TacSLTaskImageAugmentation, TacSLEnvBall, FactoryABCTas
                     torch.tensor(self.cfg_task.rl.torque_action_scale, device=self.device))
 
             self.ctrl_target_fingertip_contact_wrench = torch.cat((force_actions, torque_actions), dim=-1)
-
+        ##### 
         if not isinstance(ctrl_target_gripper_dof_pos, (int, float)):
             ctrl_target_gripper_dof_pos = ctrl_target_gripper_dof_pos.unsqueeze(-1).expand(-1, 2)
         self.ctrl_target_gripper_dof_pos = ctrl_target_gripper_dof_pos

@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
-<robot name="classification_ball">
-    <link name="ball">
+<robot name="golf_ball">
+    <link name="golf_ball">
         <visual>
             <geometry>
                 <mesh filename="../mesh/TVB_mesh/ball_task_golf.obj"/>                                   
@@ -13,7 +13,7 @@
             <geometry>
                 <mesh filename="../mesh/TVB_mesh/ball_task_golf.obj"/> 
             </geometry>
-            <sdf resolution="128"/>
+            <sdf resolution="256"/>
         </collision>
     </link>
 </robot>

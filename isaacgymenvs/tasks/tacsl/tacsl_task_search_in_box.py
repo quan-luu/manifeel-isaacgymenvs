@@ -89,6 +89,15 @@ class TacSLTaskSearchInBox(TacSLTaskImageAugmentation, TacSLEnvInsertionGravity,
         self.image_obs_keys = [k for k, v in self.obs_dims.items() if len(v) > 2 and 'force_field' not in k]
         self.init_image_augmentation()
 
+        # 🔦 randomize light parameters
+        # l_color = gymapi.Vec3(1.0, 0.6, 0.2)  
+        # l_color = gymapi.Vec3(0.5, 0.5, 0.5)
+        l_color = gymapi.Vec3(0.0, 0.0, 0.0)        
+        l_ambient = gymapi.Vec3(0.0, 0.0, 0.0)       # medium env light
+        # l_direction = gymapi.Vec3(0.0, -1.0, -0.5)   # light direction
+        l_direction = gymapi.Vec3(-0.5, -0.5, 0.0)   
+        # self.gym.set_light_parameters(self.sim, 0, l_color, l_ambient, l_direction)
+
         # self.reset_idx(torch.arange(self.num_envs))
 
     def initialize_franka_robot_open_hand(self):
@@ -511,8 +520,8 @@ class TacSLTaskSearchInBox(TacSLTaskImageAugmentation, TacSLEnvInsertionGravity,
         self.gym.fetch_results(self.sim, True)  # probably not needed
         self.refresh_all_tensors()
 
-        self._move_gripper_to_dof_pos(gripper_dof_pos=self.cfg_task.env.get("franka_close_gripper_width", 0.0),
-                                      sim_steps=self.cfg_task.env.num_gripper_close_sim_steps)
+        # self._move_gripper_to_dof_pos(gripper_dof_pos=self.cfg_task.env.get("franka_close_gripper_width", 0.0),
+        #                               sim_steps=self.cfg_task.env.num_gripper_close_sim_steps)
         self.enable_gravity(gravity_vec=self.cfg_base.sim.gravity)
 
         if self.cfg_task.randomize.randomize_ctrl_params:
@@ -630,15 +639,14 @@ class TacSLTaskSearchInBox(TacSLTaskImageAugmentation, TacSLEnvInsertionGravity,
 
         ee_to_plug_tip_pos_local[:, :2] = plug_pos_in_gripper_xy_sampled
         print("👀ee_to_plug_tip_pos_local:", ee_to_plug_tip_pos_local.cpu().detach().numpy())
-
-        # for box_expore_lift_update_pokuang_Mar26_40
-        tuning_x = torch.tensor([random.choice([0, 0.03, 0.05]) for _ in range(self.num_envs)], 
+        # fine_tuning_z = 0.00  # #Positive values means downward 
+        # fine_tuning_x = 0.0 # (-0.021 for ori)Positive values means far from robot
+        # tuning_z =  0.0 #-0.05
+        # tuning_x = random.choice([0, 0.03, 0.05])  #  neg inside
+        tuning_x = torch.tensor([random.choice([0, 0.05]) for _ in range(self.num_envs)], 
                           dtype=torch.float32, device=self.device)
-        
-        # for box_expore_lift_far_ryan_Mar28
-        # tuning_x = torch.tensor([random.choice([0, 0.05]) for _ in range(self.num_envs)], 
-        #             dtype=torch.float32, device=self.device)
-
+        # tuning_x = torch.tensor([random.choice([0, 0.03, 0.05]) for _ in range(self.num_envs)], 
+        #                   dtype=torch.float32, device=self.device)
         ee_to_plug_tip_pos_local[:, 0] += tuning_x
 
         # random_x = 0.05

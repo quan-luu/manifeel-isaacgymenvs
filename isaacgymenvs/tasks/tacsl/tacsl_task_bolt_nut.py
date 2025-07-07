@@ -619,7 +619,7 @@ class TacSLTaskBoltNut(TacSLTaskImageAugmentation, TacSLEnvInsertion, FactoryABC
                                          tip_dist_range_mag / 2. *
                                          self.cfg_task.randomize.plug_pos_z_in_gripper_noise_multiplier)
         # subtract from plug length to get the distance from the tip
-        fine_tuning_z = 0.01 #-0.05  # 👆-0.05 #Positive values means downward
+        fine_tuning_z = 0.0  # 👆0.045 #Positive values means downward
         ee_to_plug_tip_pos_local[:, 2] = plug_pos_in_gripper_z_sampled - self.plug_lengths.squeeze(-1) + fine_tuning_z
 
         #plug_pos_in_gripper_noise[:, :2] = torch.tensor([[1.0, 2.0]], device="cuda:0")
@@ -676,6 +676,8 @@ class TacSLTaskBoltNut(TacSLTaskImageAugmentation, TacSLEnvInsertion, FactoryABC
                                                                                      world_to_plug_base_pos,
                                                                                      flip_z_quat,
                                                                                      zero_translation)
+        
+        # self.root_pos[env_ids, self.plug_actor_id_env, :] = torch.tensor([0.5, 0.0, 0.06], device=self.device).unsqueeze(0).repeat(self.num_envs, 1) # 0.045
         self.root_pos[env_ids, self.plug_actor_id_env, :] = world_to_plug_base_pos
         self.root_quat[env_ids, self.plug_actor_id_env] = world_to_plug_base_quat
 
@@ -692,6 +694,7 @@ class TacSLTaskBoltNut(TacSLTaskImageAugmentation, TacSLEnvInsertion, FactoryABC
                                                             socket_noise_xyz[env_ids, 1]
         self.root_pos[env_ids, self.socket_actor_id_env, 2] = self.cfg_task.randomize.socket_pos_xyz_initial[2] + \
                                                             socket_noise_xyz[env_ids, 2]
+        print(f'self.root_pos[env_ids, self.socket_actor_id_env]: {self.root_pos[env_ids, self.socket_actor_id_env, :].cpu().detach().numpy()}')
 
         socket_rot_initial = self.cfg_task.randomize.socket_rot_initial
         socket_rot_noise_level = self.cfg_task.randomize.socket_rot_noise
@@ -776,6 +779,8 @@ class TacSLTaskBoltNut(TacSLTaskImageAugmentation, TacSLEnvInsertion, FactoryABC
 
             self.ctrl_target_fingertip_contact_wrench = torch.cat((force_actions, torque_actions), dim=-1)
 
+        if not isinstance(ctrl_target_gripper_dof_pos, (int, float)):
+            ctrl_target_gripper_dof_pos = ctrl_target_gripper_dof_pos.unsqueeze(-1).expand(-1, 2)
         self.ctrl_target_gripper_dof_pos = ctrl_target_gripper_dof_pos
 
         self.generate_ctrl_signals()
@@ -859,24 +864,11 @@ class TacSLTaskBoltNut(TacSLTaskImageAugmentation, TacSLEnvInsertion, FactoryABC
     def _check_plug_close_to_socket(self):
         """Check if plug is close to socket."""
 
-        # TO-DO: update following threshold values in the config file
-        USB_lower = 0.30
-        USB_upper = 0.35
-        lower = USB_lower
-        upper = USB_upper
+        keypoint_dist = torch.norm(self.keypoints_socket - self.keypoints_plug, p=2, dim=-1)
 
-        keypoint_dist = torch.norm(self.keypoints_socket - self.keypoints_plug, 
-                                   p=2, 
-                                   dim=-1)
-        
-        key_point_dis_mean = torch.mean(keypoint_dist, dim=-1)
-        
-        is_plug_close_to_socket = torch.where(
-            (self.cfg_task.rl.close_error_thresh_lower < key_point_dis_mean) & 
-            (key_point_dis_mean < self.cfg_task.rl.close_error_thresh_upper),
-            torch.ones_like(self.progress_buf),
-            torch.zeros_like(self.progress_buf)
-        )       
+        is_plug_close_to_socket = torch.where(torch.mean(keypoint_dist, dim=-1) < self.cfg_task.rl.close_error_thresh,
+                                              torch.ones_like(self.progress_buf),
+                                              torch.zeros_like(self.progress_buf))        
                 
         return is_plug_close_to_socket
 

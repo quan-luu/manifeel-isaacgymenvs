@@ -3,7 +3,7 @@
     <link name="ball">
         <visual>
             <geometry>
-                <mesh filename="../mesh/TVB_mesh/ball_task_base_square.obj" scale="0.35 1 1"/>                                   
+                <mesh filename="../mesh/TVB_mesh/ball_task_base_square.obj" scale="0.35 1.2 1"/>                                   
             </geometry>
             <material name="white">
                 <color rgba="1 1 1 1"/>
@@ -11,9 +11,9 @@
         </visual>
         <collision>
             <geometry>
-                <mesh filename="../mesh/TVB_mesh/ball_task_base_square.obj" scale="0.35 1 1"/> 
+                <mesh filename="../mesh/TVB_mesh/ball_task_base_square.obj" scale="0.35 1.2 1"/> 
             </geometry>
-            <sdf resolution="128"/>
+            <sdf resolution="256"/>
         </collision>
     </link>
 </robot>

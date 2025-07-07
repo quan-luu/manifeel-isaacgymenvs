@@ -390,7 +390,7 @@ class TacSLTaskPowerInsertion(TacSLTaskImageAugmentation, TacSLEnvInsertion, Fac
             if self.cfg_task.env.use_tactile_field_obs:
                 # Define the mappings for tactile force fields and depths
                 keys = [
-                    ('tactile_force_field_left', 'tactile_depth_left'),
+                    # ('tactile_force_field_left', 'tactile_depth_left'),
                     ('tactile_force_field_right', 'tactile_depth_right')
                 ]
                 for force_field_key, depth_key in keys:
@@ -614,7 +614,7 @@ class TacSLTaskPowerInsertion(TacSLTaskImageAugmentation, TacSLEnvInsertion, Fac
                                          tip_dist_range_mag / 2. *
                                          self.cfg_task.randomize.plug_pos_z_in_gripper_noise_multiplier)
         # subtract from plug length to get the distance from the tip
-        fine_tuning_z = 0.02 #-0.05  # 👆-0.05 #Positive values means downward
+        fine_tuning_z =0.01  #0.015 #-0.05  # 👆-0.05 #Positive values means downward
         ee_to_plug_tip_pos_local[:, 2] = plug_pos_in_gripper_z_sampled - self.plug_lengths.squeeze(-1) + fine_tuning_z
 
         #plug_pos_in_gripper_noise[:, :2] = torch.tensor([[1.0, 2.0]], device="cuda:0")

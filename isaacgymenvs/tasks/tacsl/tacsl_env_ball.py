@@ -62,25 +62,35 @@ class TacSLSensors(TactileFieldSensor, TactileRGBSensor, CameraSensor):
         return tactile_sensor_configs
 
     def _compose_tactile_force_field_configs(self):
-        plug_rb_names = self.gym.get_actor_rigid_body_names(self.env_ptrs[0], self.plug_actor_id_env)
+        plug_rb_names = self.gym.get_actor_rigid_body_names(self.env_ptrs[0], self.gear_medium_actor_id_env)
+        # print(f"👌 plug_rb_names: {plug_rb_names}")
         tactile_shear_field_config = dict([
             ('name', 'tactile_force_field_left'),
             ('elastomer_actor_name', 'franka'), ('elastomer_link_name', 'elastomer_left'),
             ('elastomer_tip_link_name', 'elastomer_tip_left'),
             ('elastomer_parent_urdf_path', self.asset_file_paths["franka"]),
-            ('indenter_urdf_path', self.asset_file_paths["plug"]),
-            ('indenter_actor_name', 'plug'), ('indenter_link_name', plug_rb_names[0]),
+            ('indenter_urdf_path', self.asset_file_paths["golfball"]),
+            ('indenter_actor_name', 'gear_medium'), ('indenter_link_name', plug_rb_names[0]),
             ('actor_handle', self.actor_handles['franka']),
             ('compliance_stiffness', self.cfg_task.env.compliance_stiffness),
             ('compliant_damping', self.cfg_task.env.compliant_damping),
             ('use_acceleration_spring', False)
         ])
-        tactile_shear_field_config_left = tactile_shear_field_config.copy()
         tactile_shear_field_config_right = tactile_shear_field_config.copy()
         tactile_shear_field_config_right['name'] = 'tactile_force_field_right'
         tactile_shear_field_config_right['elastomer_link_name'] = 'elastomer_right'
         tactile_shear_field_config_right['elastomer_tip_link_name'] = 'elastomer_tip_right'
-        tactile_shear_field_configs = [tactile_shear_field_config_left, tactile_shear_field_config_right]
+
+        ppball_rb_names = self.gym.get_actor_rigid_body_names(self.env_ptrs[0], self.gear_small_actor_id_env)
+        tactile_shear_field_config_right_ppball = tactile_shear_field_config_right.copy()
+        tactile_shear_field_config_right_ppball['name'] = 'tactile_force_field_right_ppball'
+        tactile_shear_field_config_right_ppball['indenter_urdf_path'] = self.asset_file_paths["ppball"]
+        tactile_shear_field_config_right_ppball['indenter_actor_name'] = 'gear_small'
+        tactile_shear_field_config_right_ppball['indenter_link_name'] = ppball_rb_names[0]
+
+        # tactile_shear_field_configs = [tactile_shear_field_config_left, tactile_shear_field_config_right]
+        tactile_shear_field_configs = [tactile_shear_field_config_right, tactile_shear_field_config_right_ppball]
+        # tactile_shear_field_configs = [tactile_shear_field_config_right]
         return tactile_shear_field_configs
 
     def get_tactile_force_field_tensors_dict(self):
@@ -92,6 +102,7 @@ class TacSLSensors(TactileFieldSensor, TactileRGBSensor, CameraSensor):
 
         debug = False   # Debug visualization
         for k in tactile_force_field_dict_raw:
+            # print(f"Processing tactile force field: {k}")
             penetration_depth, tactile_normal_force, tactile_shear_force = tactile_force_field_dict_raw[k]
             tactile_force_field = torch.cat(
                 (tactile_normal_force.view((self.num_envs, nrows, ncols, 1)),
@@ -215,7 +226,10 @@ class TacSLEnvBall(TacSLBaseGear, TacSLSensors, FactoryABCEnv):
         gear_large_file  = "ball_class_blank.urdf"
         base_file = "ball_class_base.urdf"
 
-        # print(f'test👌suceessfully loaded gear files')
+        golfball_asset_file_path = os.path.join(os.path.abspath(urdf_root), gear_medium_file)
+        ppball_asset_file_path = os.path.join(os.path.abspath(urdf_root), gear_small_file)
+        self.asset_file_paths['golfball'] = golfball_asset_file_path
+        self.asset_file_paths['ppball'] = ppball_asset_file_path
 
         gear_options = gymapi.AssetOptions()
         gear_options.flip_visual_attachments = False
@@ -360,7 +374,7 @@ class TacSLEnvBall(TacSLBaseGear, TacSLSensors, FactoryABCEnv):
             gear_small_handle = self.gym.create_actor(
                 env_ptr, gear_small_asset, gear_pose, "gear_small", i, 0, 0
             )
-            # self.actor_handles["gear_small"] = gear_small_handle
+            self.actor_handles["gear_small"] = gear_small_handle
             # self.actor_ids_sim["gear_small"].append(actor_count)
             self.gear_small_actor_ids_sim.append(actor_count)
             actor_count += 1
@@ -369,7 +383,7 @@ class TacSLEnvBall(TacSLBaseGear, TacSLSensors, FactoryABCEnv):
             gear_medium_handle = self.gym.create_actor(
                 env_ptr, gear_medium_asset, gear_pose, "gear_medium", i, 0, 0
             )
-            # self.actor_handles['gear_medium'] = gear_medium_handle
+            self.actor_handles['gear_medium'] = gear_medium_handle
             # self.actor_ids_sim["gear_medium"].append(actor_count)
             self.gear_medium_actor_ids_sim.append(actor_count)
             actor_count += 1
@@ -378,7 +392,7 @@ class TacSLEnvBall(TacSLBaseGear, TacSLSensors, FactoryABCEnv):
             gear_large_handle = self.gym.create_actor(
                 env_ptr, gear_large_asset, gear_pose, "gear_large", i, 0, 0
             )
-            # self.actor_handles['gear_large'] = gear_large_handle
+            self.actor_handles['gear_large'] = gear_large_handle
             # self.actor_ids_sim["gear_large"].append(actor_count)
             self.gear_large_actor_ids_sim.append(actor_count)
             actor_count += 1
@@ -387,7 +401,7 @@ class TacSLEnvBall(TacSLBaseGear, TacSLSensors, FactoryABCEnv):
             base_handle = self.gym.create_actor(
                 env_ptr, base_asset, base_pose, "base", i, 0, 0
             )
-            # self.actor_handles['base'] = base_handle
+            self.actor_handles['base'] = base_handle
             # self.actor_ids_sim["base"].append(actor_count)
             self.base_actor_ids_sim.append(actor_count)
             actor_count += 1
