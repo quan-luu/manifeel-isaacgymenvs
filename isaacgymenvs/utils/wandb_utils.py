@@ -7,9 +7,10 @@ from isaacgymenvs.utils.reformat import omegaconf_to_dict
 class WandbAlgoObserver(AlgoObserver):
     """Need this to propagate the correct experiment name after initialization."""
 
-    def __init__(self, cfg):
+    def __init__(self, cfg, output_dir=None):
         super().__init__()
         self.cfg = cfg
+        self.output_dir = output_dir 
 
     def before_init(self, base_name, config, experiment_name):
         """
@@ -19,8 +20,9 @@ class WandbAlgoObserver(AlgoObserver):
 
         import wandb
 
-        wandb_unique_id = f"uid_{experiment_name}"
-        print(f"Wandb using unique id {wandb_unique_id}")
+        # wandb_unique_id = f"uid_{experiment_name}"
+        # print(f"Wandb using unique id {wandb_unique_id}")
+        wandb_unique_id = None
 
         cfg = self.cfg
 
@@ -28,13 +30,14 @@ class WandbAlgoObserver(AlgoObserver):
         @retry(3, exceptions=(Exception,))
         def init_wandb():
             wandb.init(
+                dir=self.output_dir,
                 project=cfg.wandb_project,
                 entity=cfg.wandb_entity,
                 group=cfg.wandb_group,
                 tags=cfg.wandb_tags,
                 sync_tensorboard=True,
                 id=wandb_unique_id,
-                name=experiment_name,
+                name=cfg.wandb_name,
                 resume=True,
                 settings=wandb.Settings(start_method='fork'),
             )

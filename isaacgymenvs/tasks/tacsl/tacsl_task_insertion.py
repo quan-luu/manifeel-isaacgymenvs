@@ -386,7 +386,8 @@ class TacSLTaskInsertion(TacSLTaskImageAugmentation, TacSLEnvInsertion, FactoryA
         if self.cfg_task.env.use_shear_force:
             tactile_force_field_dict = self.get_tactile_force_field_tensors_dict()
             if self.cfg_task.env.use_tactile_field_obs:
-                for k in ['tactile_force_field_left', 'tactile_force_field_right']:
+                # for k in ['tactile_force_field_left', 'tactile_force_field_right']:
+                for k in ['tactile_force_field_right']:
                     self.obs_dict[k][:] = tactile_force_field_dict[k]
                     if self.cfg_task.env.zero_out_normal_force_field_obs:
                         self.obs_dict[k][..., 0] *= 0.0

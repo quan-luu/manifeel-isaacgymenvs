@@ -49,7 +49,7 @@ def preprocess_train_config(cfg, config_dict):
     train_cfg['population_based_training'] = cfg.pbt.enabled
     train_cfg['pbt_idx'] = cfg.pbt.policy_idx if cfg.pbt.enabled else None
 
-    train_cfg['full_experiment_name'] = cfg.get('full_experiment_name')
+    # train_cfg['full_experiment_name'] = cfg.get('full_experiment_name')
 
     print(f'Using rl_device: {cfg.rl_device}')
     print(f'Using sim_device: {cfg.sim_device}')
@@ -120,6 +120,8 @@ def launch_rlg_hydra(cfg: DictConfig):
     # sets seed. if seed is -1 will pick a random one
     cfg.seed = set_seed(cfg.seed, torch_deterministic=cfg.torch_deterministic, rank=global_rank)
 
+    experiment_dir = os.path.join('runs', cfg.train.params.config.name, str(cfg.seed))
+
     def create_isaacgym_env(**kwargs):
         envs = isaacgymenvs.make(
             cfg.seed, 
@@ -139,7 +141,7 @@ def launch_rlg_hydra(cfg: DictConfig):
             envs.is_vector_env = True
             envs = gym.wrappers.RecordVideo(
                 envs,
-                f"videos/{run_name}",
+                f"{experiment_dir}/videos/{run_name}",
                 step_trigger=lambda step: step % cfg.capture_video_freq == 0,
                 video_length=cfg.capture_video_len,
             )
@@ -180,7 +182,7 @@ def launch_rlg_hydra(cfg: DictConfig):
         cfg.seed += global_rank
         if global_rank == 0:
             # initialize wandb only once per multi-gpu run
-            wandb_observer = WandbAlgoObserver(cfg)
+            wandb_observer = WandbAlgoObserver(cfg, experiment_dir)
             observers.append(wandb_observer)
 
     # register new AMP network builder and agent
@@ -202,9 +204,9 @@ def launch_rlg_hydra(cfg: DictConfig):
 
     # dump config dict
     if not cfg.test:
-        experiment_dir = os.path.join('runs', cfg.train.params.config.name + 
-        '_{date:%d-%H-%M-%S}'.format(date=datetime.now()))
-
+        # experiment_dir = os.path.join('runs', cfg.train.params.config.name + 
+        # '_{date:%d-%H-%M-%S}'.format(date=datetime.now()))
+    
         os.makedirs(experiment_dir, exist_ok=True)
         with open(os.path.join(experiment_dir, 'config.yaml'), 'w') as f:
             f.write(OmegaConf.to_yaml(cfg))
