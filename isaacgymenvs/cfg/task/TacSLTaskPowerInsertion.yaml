@@ -230,9 +230,7 @@ ctrl:
         joint_deriv_gains: [8, 8, 8, 8, 8, 8, 8]
     task_space_impedance:
         motion_ctrl_axes: [1, 1, 1, 1, 1, 1]
-        # task_prop_gains: [0, 0, 0, 0, 50, 0]
-        task_prop_gains: [500, 600, 600, 50, 50, 100]
-        # task_prop_gains: [600, 600, 600, 50, 50, 50]
+        task_prop_gains: [600, 600, 600, 50, 50, 50]
         task_deriv_gains: [50, 50, 50, 1.41, 1.41, 1.41]
     task_space_nullspace:
         motion_ctrl_axes: [1, 1, 1, 1, 1, 1]
