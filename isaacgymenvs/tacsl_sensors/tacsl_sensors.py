@@ -25,11 +25,12 @@ import torch
 import trimesh
 from urdfpy import URDF
 import yaml
+import pickle
 
 from omegaconf import OmegaConf
 from scipy.spatial.transform import Rotation as R
 from collections.abc import Iterable
-
+from collections import defaultdict
 
 def get_camera_config(sensor_type, tactile_camera_name, actor_name, attach_link_name):
     """
@@ -703,6 +704,17 @@ class TactileFieldSensor(TactileBase):
         self.tactile_mu = 2.
         self.tactile_kt = 0.1
 
+        # --- For vt_world bias lookup ---
+        self.NUM_BINS = 50
+        self.Y_ANGVEL_RANGE = (-0.25, 0.25)
+        self.lookup_bins = np.linspace(self.Y_ANGVEL_RANGE[0], self.Y_ANGVEL_RANGE[1], self.NUM_BINS + 1)
+        self.y_angvel_to_vtworld = defaultdict(list)
+
+        self.vt_lookup_save_counter = 0
+        self.vt_lookup_save_interval = 500  # Save every 200 frames
+
+        self.load_vt_lookup_table("/scratch/gilbreth/luu15/Projects/TVB/assets/my_vt_lookup_table_impedance.pkl")
+
     def query_collision(self, sdf, tf_sdf, sdf_linvel_world, sdf_angvel_world, points_world, velocity_world):
         """
         Query collisions in the SDF.
@@ -729,7 +741,6 @@ class TactileFieldSensor(TactileBase):
 
         # compute points in the object frame
         points_sdf = tu.tf_apply(tf_sdf_inv[0], tf_sdf_inv[1], points_world)
-
         # compute depth
         if self.sdf_tool == 'trimesh':
             collision_mask_flatten, depth_flatten, normal_flatten_sdf = \
@@ -750,6 +761,7 @@ class TactileFieldSensor(TactileBase):
         normal_world = torch.zeros(points_world.shape, device=self.device)
         depth_dot = torch.zeros(points_world.shape[:-1], device=self.device)
         vt_world = torch.zeros(points_world.shape, device = self.device)
+        vt_world_corrected = torch.zeros(points_world.shape, device = self.device)
 
         if collision_mask_flatten.sum() > 0:
             normal_sdf = normal_flatten_sdf.reshape(normal_world.shape)
@@ -781,8 +793,29 @@ class TactileFieldSensor(TactileBase):
             relative_velocity_world = velocity_world - closest_points_velocity_world
 
             vt_world = relative_velocity_world - normal_world * torch.sum(normal_world * relative_velocity_world, dim = -1, keepdim = True)
+            
+            
+            # Compute the norm for each tactile point (shape: [1, 140])
+            elastomer_link_id = 16
+            elastomer_angvel_world = self.body_angvel[:, elastomer_link_id]
+            # Example usage inside a method of TactileFieldSensor
+            y_angvel = elastomer_angvel_world[0, 1].cpu().item()
+            
+            # vt_world_np = vt_world[0].cpu().numpy()  # shape (num_points, 3)
+            # self.update_vt_lookup_table(y_angvel, vt_world_np)
+            # self.vt_lookup_save_counter += 1
+            # print(f"vt_lookup_save_counter: {self.vt_lookup_save_counter}, y_angvel: {y_angvel:.6f}, vt_world norm: {np.linalg.norm(vt_world_np, axis=-1).mean():.6f}")
+            # if self.vt_lookup_save_counter % self.vt_lookup_save_interval == 0:
+            #     self.save_vt_lookup_table("my_vt_lookup_table_impedance.pkl")
 
-        return depth, depth_dot, normal_world, vt_world
+            # To get the bias for a given y_angvel:
+            vt_bias_np = self.get_vt_bias(y_angvel)   # shape (num_points, 3)
+            # Convert vt_bias to torch tensor on the same device and dtype as vt_world
+            vt_bias = torch.tensor(vt_bias_np, device=vt_world.device, dtype=vt_world.dtype)
+            # print(f"vt_bias_np: {np.linalg.norm(vt_bias_np, axis=-1).mean():.6f}")
+            vt_world_corrected = vt_world - vt_bias.unsqueeze(0)
+
+        return depth, depth_dot, normal_world, vt_world_corrected
 
     def post_process_shear_field_configs(self, tactile_shear_field_configs):
         def get_link_handle(actor_name, link_name):
@@ -886,3 +919,46 @@ class TactileFieldSensor(TactileBase):
 
         return depth, tactile_normal_force, tactile_shear_force
 
+    def save_vt_lookup_table(self, path):
+        # Convert defaultdict to dict for saving
+        data = {
+            'NUM_BINS': self.NUM_BINS,
+            'Y_ANGVEL_RANGE': self.Y_ANGVEL_RANGE,
+            'lookup_bins': self.lookup_bins,
+            'y_angvel_to_vtworld': dict(self.y_angvel_to_vtworld)
+        }
+        with open(path, 'wb') as f:
+            pickle.dump(data, f)
+        print(f"Lookup table saved to {path}")
+
+    def load_vt_lookup_table(self, path):
+        with open(path, 'rb') as f:
+            data = pickle.load(f)
+        self.NUM_BINS = data['NUM_BINS']
+        self.Y_ANGVEL_RANGE = data['Y_ANGVEL_RANGE']
+        self.lookup_bins = data['lookup_bins']
+        # Restore as defaultdict(list)
+        self.y_angvel_to_vtworld = defaultdict(list, data['y_angvel_to_vtworld'])
+        print(f"Lookup table loaded from {path}")
+
+    def update_vt_lookup_table(self, y_angvel, vt_world):
+            """
+            y_angvel: float (the y angular velocity)
+            vt_world: np.ndarray of shape (num_points, 3)
+            """
+            bin_idx = np.digitize([y_angvel], self.lookup_bins)[0] - 1
+            if 0 <= bin_idx < self.NUM_BINS:
+                self.y_angvel_to_vtworld[bin_idx].append(vt_world.copy())
+
+    def get_vt_bias(self, y_angvel):
+        """
+        y_angvel: float
+        Returns: np.ndarray of shape (num_points, 3) or zeros if no data
+        """
+        bin_idx = np.digitize([y_angvel], self.lookup_bins)[0] - 1
+        if 0 <= bin_idx < self.NUM_BINS and len(self.y_angvel_to_vtworld[bin_idx]) > 0:
+            vt_stack = np.stack(self.y_angvel_to_vtworld[bin_idx], axis=0)  # shape: (N, num_points, 3)
+            return vt_stack.mean(axis=0)
+        else:
+            # Return zeros if no data for this bin
+            return np.zeros((self.tactile_pos_local.shape[0], 3))

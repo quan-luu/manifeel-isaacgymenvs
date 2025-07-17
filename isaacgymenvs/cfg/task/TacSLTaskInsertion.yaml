@@ -55,15 +55,15 @@ env:
     use_gelsight: True  # flag to use Gelsight R1.5 finger
     use_isaac_gym_tactile: False
     use_compliant_contact: True
-    compliance_stiffness: 350.0  # this number depends on the contact force. consequently, it's effect varies with gripper gains
+    compliance_stiffness: 50.0  # this number depends on the contact force. consequently, it's effect varies with gripper gains
     compliant_damping: 0.0
-    elastomer_friction_factor: 1.0  # scale factor to increase/decrease the friction of the elastomer fingertip
+    elastomer_friction_factor: 0.5  # scale factor to increase/decrease the friction of the elastomer fingertip
     tactile_subsample_ratio: 4
     tactile_cam_euler_offset: [0.0, 0.0, 0.0]   # euler angle offset to tactile camera pose
     tactile_cam_zoom_level: 1.0   # scalar to zoom tactile camera in or out. If less than 1, zooms-in i.e. move camera closer
     use_shear_force: False
-    num_shear_rows: 20
-    num_shear_cols: 30
+    num_shear_rows: 10
+    num_shear_cols: 14
     zero_out_normal_force_field_obs: False  # flag to set the normal force field to zero and only use shear force field
     asset_info_filename: 'industreal_asset_info_pegs.yaml'   # industreal_asset_info_pegs.yaml, tacsl_asset_info_peg_placement.yaml, tacsl_asset_info_bolt_on_nut.yaml
     desired_subassemblies: [ 'round_peg_hole_16mm']   # see all options in FactoryEnvInsertion.yaml
