@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<robot name="power_plug_medium">
+    <link name="power_plug_medium">
+        <visual>
+            <!-- <origin rpy="0 0 1.5708" xyz="0 0 0"/> -->
+            <geometry>
+                <mesh filename="../mesh/TVB_mesh/power_plug.obj"/>
+                <!-- <mesh filename="../mesh/TVB_mesh/power_2prongs_shape1_plug.obj"/> -->
+            </geometry>
+            <!-- <material name="Blue">
+                <color rgba="0.3 0.3 1 1"/>
+            </material> -->
+            <!-- <material name="LightBlack">
+                <color rgba="0.3 0.3 0.3 1"/>
+            </material> -->
+        </visual>
+        <collision>
+            <!-- <origin rpy="0 0 1.5708" xyz="0 0 0"/> -->
+            <geometry>
+                <mesh filename="../mesh/TVB_mesh/power_plug.obj"/>
+                <!-- <mesh filename="../mesh/TVB_mesh/power_2prongs_shape1_plug.obj"/> -->
+            </geometry>
+            <!-- <sdf resolution="256"/> -->
+            <sdf resolution="128"/>
+        </collision>
+    </link>
+</robot>

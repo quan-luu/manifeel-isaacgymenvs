@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+<robot name="USB_plug">
+    <link name="USB_plug">
+        <visual>
+            <geometry>
+                <mesh filename="../mesh/TVB_mesh/USB_plug.obj"/>
+            </geometry>
+            <!-- <material name="Blue">
+                <color rgba="0.3 0.3 1 1"/>
+            </material> -->
+            <!-- <material name="Blue">
+                <color rgba="0.3 0.3 1 1"/>
+            </material> -->
+
+            <!-- <material name="LightRed">
+                <color rgba="1 0.3 0.3 1"/>
+            </material> -->
+            <!-- <material name="GoldenYellow">
+                <color rgba="1 0.84 0 1"/>
+            </material> -->
+
+            <!-- <material name="DeepRed">
+                <color rgba="0.6 0 0 1"/>
+            </material> -->
+
+            <!-- <material name="LightPurple">
+                <color rgba="0.75 0.5 1 1"/>
+            </material> -->
+
+            <!-- <material name="GrassGreen">
+                <color rgba="0.13 0.55 0.13 1"/>
+            </material> -->
+
+            <!-- <material name="HotPink">
+                <color rgba="1 0.41 0.71 1"/>
+            </material> -->
+        </visual>
+        <collision>
+            <geometry>
+                <mesh filename="../mesh/TVB_mesh/USB_plug.obj"/>
+            </geometry>
+            <sdf resolution="128"/>
+        </collision>
+    </link>
+</robot>
