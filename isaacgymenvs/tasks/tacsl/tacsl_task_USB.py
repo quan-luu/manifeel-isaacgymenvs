@@ -88,7 +88,7 @@ class TacSLTaskUSB(TacSLTaskImageAugmentation, TacSLEnvInsertion, FactoryABCTask
         self.image_obs_keys = [k for k, v in self.obs_dims.items() if len(v) > 2 and 'force_field' not in k]
         self.init_image_augmentation()
 
-        # self.reset_idx(torch.arange(self.num_envs))
+        self.reset_idx(torch.arange(self.num_envs))
 
     def initialize_franka_robot_open_hand(self):
         """
@@ -195,17 +195,15 @@ class TacSLTaskUSB(TacSLTaskImageAugmentation, TacSLEnvInsertion, FactoryABCTask
     def pre_physics_step(self, actions):
         """Optionally reset environments at the end of episodes. Apply actions from policy as position/rotation targets."""
 
-        # env_ids = self.reset_buf.nonzero(as_tuple=False).squeeze(-1)
-        # if len(env_ids) > 0:
-        #     self.reset_idx(env_ids)
+        env_ids = self.reset_buf.nonzero(as_tuple=False).squeeze(-1)
+        if len(env_ids) > 0:
+            self.reset_idx(env_ids)
 
         self._actions = actions.clone().to(self.device)  # shape = (num_envs, num_actions); values = [-1, 1]
-        # self._apply_actions_as_ctrl_targets(actions=self._actions,
-        #                                     ctrl_target_gripper_dof_pos=self.cfg_task.env.get("franka_close_gripper_width", 0.0),
-        #                                     do_scale=True)
+
         self._apply_actions_as_ctrl_targets(actions=self._actions,
-                                    ctrl_target_gripper_dof_pos=self.cfg_task.env.get("franka_close_gripper_width", 0.0),
-                                    do_scale=True)
+                                            ctrl_target_gripper_dof_pos=self.cfg_task.env.get("franka_close_gripper_width", 0.0),
+                                            do_scale=True)
 
         sim_dt_noise = self.cfg_task.env.get("sim_dt_noise", 0)
         if sim_dt_noise > 0.0:
@@ -383,21 +381,16 @@ class TacSLTaskUSB(TacSLTaskImageAugmentation, TacSLEnvInsertion, FactoryABCTask
             self.apply_image_augmentation_to_obs_dict()
 
         self.obs_dict['socket_pos'][:] = self.socket_pos + self.socket_obs_noise
-        # self.obs_dict['socket_pos_gt'][:] = self.socket_pos
+        self.obs_dict['socket_pos_gt'][:] = self.socket_pos
 
         if self.cfg_task.env.use_shear_force:
-            tactile_force_field_dict, tactile_depth_dict = self.get_tactile_force_field_tensors_dict()
+            tactile_force_field_dict = self.get_tactile_force_field_tensors_dict()
             if self.cfg_task.env.use_tactile_field_obs:
-                # Define the mappings for tactile force fields and depths
-                keys = [
-                    # ('tactile_force_field_left', 'tactile_depth_left'),
-                    ('tactile_force_field_right', 'tactile_depth_right')
-                ]
-                for force_field_key, depth_key in keys:
-                    self.obs_dict[force_field_key][:] = tactile_force_field_dict[force_field_key]
-                    self.obs_dict[depth_key][:] = tactile_depth_dict[force_field_key]
+                # for k in ['tactile_force_field_left', 'tactile_force_field_right']:
+                for k in ['tactile_force_field_right']:
+                    self.obs_dict[k][:] = tactile_force_field_dict[k]
                     if self.cfg_task.env.zero_out_normal_force_field_obs:
-                        self.obs_dict[force_field_key][..., 0] *= 0.0
+                        self.obs_dict[k][..., 0] *= 0.0
         return self.obs_dict
 
     def compute_reward(self):
@@ -409,12 +402,11 @@ class TacSLTaskUSB(TacSLTaskImageAugmentation, TacSLEnvInsertion, FactoryABCTask
     def _update_reset_buf(self):
         """Assign environments for reset if episode length expired."""
 
-        self.reset_buf[:] = self._check_success()
         # If max episode length has been reached
         self.reset_buf[:] = torch.where(self.progress_buf[:] >= self.cfg_task.rl.max_episode_length - 1,
                                         torch.ones_like(self.reset_buf),
                                         self.reset_buf)
-        
+
     def _update_rew_buf(self):
         """Compute reward at the current timestep."""
 
@@ -456,19 +448,16 @@ class TacSLTaskUSB(TacSLTaskImageAugmentation, TacSLEnvInsertion, FactoryABCTask
             contact_penalty = (contact_penalty * (1 - is_plug_centered.float()) +
                                contact_penalty * (is_plug_centered.float() * contact_pen_reduction_scalar))
 
-        # self.rew_buf[:] = keypoint_reward * self.cfg_task.rl.keypoint_reward_scale \
-        #                   + keypoint_reward_exp * self.cfg_task.rl.keypoint_reward_scale \
-        #                   - action_penalty * self.cfg_task.rl.action_penalty_scale \
-        #                   - action_grad_penalty * self.cfg_task.rl.action_gradient_penalty_scale \
-        #                   - contact_force_table * self.cfg_task.rl.contact_penalty_scale \
-        #                   - contact_penalty * self.cfg_task.rl.contact_penalty_scale
-        
-        self.rew_buf[:] = keypoint_reward
+        self.rew_buf[:] = keypoint_reward * self.cfg_task.rl.keypoint_reward_scale \
+                          + keypoint_reward_exp * self.cfg_task.rl.keypoint_reward_scale \
+                          - action_penalty * self.cfg_task.rl.action_penalty_scale \
+                          - action_grad_penalty * self.cfg_task.rl.action_gradient_penalty_scale \
+                          - contact_force_table * self.cfg_task.rl.contact_penalty_scale \
+                          - contact_penalty * self.cfg_task.rl.contact_penalty_scale
 
     def reset_idx(self, env_ids):
         """Reset specified environments."""
 
-        #print(f'👆👆👆 reset_idx called')
         if self.cfg_task.randomize.randomize_compliance:
             if self.cfg_task.env.use_compliant_contact:
                 # sample_compliance
@@ -614,22 +603,11 @@ class TacSLTaskUSB(TacSLTaskImageAugmentation, TacSLEnvInsertion, FactoryABCTask
                                          tip_dist_range_mag / 2. *
                                          self.cfg_task.randomize.plug_pos_z_in_gripper_noise_multiplier)
         # subtract from plug length to get the distance from the tip
-        fine_tuning_z = 0.0 #-0.05  # 👆-0.05 #Positive values means downward
-        ee_to_plug_tip_pos_local[:, 2] = plug_pos_in_gripper_z_sampled - self.plug_lengths.squeeze(-1) + fine_tuning_z
-
-        #plug_pos_in_gripper_noise[:, :2] = torch.tensor([[1.0, 2.0]], device="cuda:0")
-        #self.cfg_task.randomize.plug_pos_in_gripper_noise_xy = [-0.5, 0.2]  # 
+        ee_to_plug_tip_pos_local[:, 2] = plug_pos_in_gripper_z_sampled - self.plug_lengths.squeeze(-1)
 
         plug_pos_in_gripper_xy_sampled = plug_pos_in_gripper_noise[:, :2] @ torch.diag(
             torch.tensor(self.cfg_task.randomize.plug_pos_in_gripper_noise_xy, device=self.device))
-        #print("plug_pos_in_gripper_xy_sampled:", plug_pos_in_gripper_xy_sampled)
-        #print("plug_pos_in_gripper_noise_xy:", self.cfg_task.randomize.plug_pos_in_gripper_noise_xy)
-
-
         ee_to_plug_tip_pos_local[:, :2] = plug_pos_in_gripper_xy_sampled
-        print("👀ee_to_plug_tip_pos_local:", ee_to_plug_tip_pos_local.cpu().detach().numpy())
-        # print(f' plug_pos_in_gripper_xy_sampled: {plug_pos_in_gripper_xy_sampled}')
-        # print(f' plug_pos_in_gripper_noise[:, :2]: {plug_pos_in_gripper_noise[:, :2]}')
 
         world_to_plug_tip_quat, world_to_plug_tip_pos = torch_jit_utils.tf_combine(self.fingertip_midpoint_quat,
                                                                                    self.fingertip_midpoint_pos,
@@ -641,9 +619,6 @@ class TacSLTaskUSB(TacSLTaskImageAugmentation, TacSLEnvInsertion, FactoryABCTask
             2 * (torch.rand((self.num_envs, 3), dtype=torch.float32, device=self.device) - 0.5)  # [-1, 1]
         plug_noise_rot_in_gripper *= torch.tensor(self.cfg_task.randomize.plug_noise_rot_in_gripper,
                                                   device=self.device).expand(self.num_envs, 3)
-        
-        # print(f' plug_noise_rot_in_gripper: {plug_noise_rot_in_gripper}')
-        
         # z is along the axis of the gripper so it has no effects for round pegs
         # y rotates in and out of the gripper axis
         # x rot should be zero
@@ -719,10 +694,6 @@ class TacSLTaskUSB(TacSLTaskImageAugmentation, TacSLEnvInsertion, FactoryABCTask
 
     def _set_viewer_params(self):
         """Set viewer parameters."""
-        # cam_pos = gymapi.Vec3(-0.632, -0.221,  0.7196)
-        # cam_target = gymapi.Vec3(0., 0.4, 0.58)
-        # cam_pos = gymapi.Vec3(0.3, -0.7,  0.7)
-        # cam_target = gymapi.Vec3(0.3, 0.4, 0.2)
         cam_pos = gymapi.Vec3(1.2, 0.0, 0.5)
         cam_target = gymapi.Vec3(0.0, 0.0, 0.2)
         self.gym.viewer_camera_look_at(self.viewer, None, cam_pos, cam_target)
@@ -740,7 +711,7 @@ class TacSLTaskUSB(TacSLTaskImageAugmentation, TacSLEnvInsertion, FactoryABCTask
         if do_scale:
             pos_actions = pos_actions @ torch.diag(torch.tensor(self.cfg_task.rl.pos_action_scale, device=self.device))
         self.ctrl_target_fingertip_midpoint_pos = self.fingertip_midpoint_pos + pos_actions
-        
+
         # Interpret actions as target rot (axis-angle) displacements
         rot_actions = actions[:, 3:6]
         if do_scale:
@@ -854,25 +825,12 @@ class TacSLTaskUSB(TacSLTaskImageAugmentation, TacSLEnvInsertion, FactoryABCTask
     def _check_plug_close_to_socket(self):
         """Check if plug is close to socket."""
 
-        # TO-DO: update following threshold values in the config file
-        USB_lower = 0.30
-        USB_upper = 0.35
-        lower = USB_lower
-        upper = USB_upper
+        keypoint_dist = torch.norm(self.keypoints_socket - self.keypoints_plug, p=2, dim=-1)
 
-        keypoint_dist = torch.norm(self.keypoints_socket - self.keypoints_plug, 
-                                   p=2, 
-                                   dim=-1)
-        
-        key_point_dis_mean = torch.mean(keypoint_dist, dim=-1)
-        
-        is_plug_close_to_socket = torch.where(
-            (self.cfg_task.rl.close_error_thresh_lower < key_point_dis_mean) & 
-            (key_point_dis_mean < self.cfg_task.rl.close_error_thresh_upper),
-            torch.ones_like(self.progress_buf),
-            torch.zeros_like(self.progress_buf)
-        )       
-                
+        is_plug_close_to_socket = torch.where(torch.mean(keypoint_dist, dim=-1) < self.cfg_task.rl.close_error_thresh,
+                                              torch.ones_like(self.progress_buf),
+                                              torch.zeros_like(self.progress_buf))
+
         return is_plug_close_to_socket
 
     def _check_plug_is_centered_on_socket(self):

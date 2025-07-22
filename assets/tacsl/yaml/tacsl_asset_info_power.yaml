@@ -78,18 +78,19 @@ USB_plug:
     USB_plug:
         urdf_par_dir: 'industreal'
         urdf_path: 'USB_plug'
-        diameter: 0.007986
+        width: 0.01250
+        depth: 0.0046
         length: 0.050
-        density: 80000.0 # default 8000.0
+        density: 8000.0 # default 8000.0
         friction: 1.0
         grasp_offset: 0.04
-        plug_width: 0.008
+        plug_width: 0.01250
     USB_socket:
         urdf_par_dir: 'industreal'
         urdf_path: 'USB_socket'
-        diameter: 0.0081
-        height: 0.028
-        depth: 0.023
+        width: 0.013
+        height: 0.015
+        depth: 0.0051
         density: 8000.0
         friction: 0.5
 

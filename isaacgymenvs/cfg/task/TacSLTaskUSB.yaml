@@ -16,7 +16,7 @@ env:
     numEnvs: ${resolve_default:128,${...num_envs}}
     numObservations: 21
     numActions: 6
-    controlFrequencyInv: 4
+    # controlFrequencyInv: 4
 
     # set to True if you use camera sensors in the environment
     enableCameraSensors: ${eval:'${.use_camera} + ${.use_isaac_gym_tactile}'}
@@ -26,25 +26,16 @@ env:
     use_dict_obs: True
     obsDims: { 'ee_pos': [ 3 ], 'ee_quat': [ 4 ],
                'socket_pos': [ 3 ], 'socket_quat': [ 4 ],
-               'front': [ 256, 256, 3 ],
-               'side': [ 256, 256, 3 ],
-               'wrist': [ 256, 256, 3 ],
-               'wrist_2': [ 256, 256, 3 ],
-               'left_tactile_camera_taxim': [ 320, 240, 3 ],
-               'right_tactile_camera_taxim': [ 320, 240, 3 ],
-               'tactile_force_field_left': [ 10, 14, 3 ], 
-               'tactile_force_field_right': [ 10, 14, 3 ],
-               'tactile_depth_left': [ 10, 14 ], 
-               'tactile_depth_right': [ 10, 14 ],
-               'client': [ 256, 256, 3 ],
+#               'wrist': [ 64, 64, 3 ],
+#               'left_tactile': [ 256, 256, 3 ]
     }
     stateDims: { }
 #    stateDims: { 'ee_pos': [ 3 ], 'ee_quat': [ 4 ], 'ee_lin_vel': [ 3 ], 'ee_ang_vel': [ 3 ],
 #                 'plug_pos': [ 3 ], 'plug_quat': [ 4 ] , 'socket_pos': [ 3 ], 'socket_quat': [ 4 ],
 #                 'dof_pos': [ 9 ], 'dof_vel': [ 9 ] }
 
-    use_camera_obs: True   # Turn on to learn from camera or tactile images
-    use_tactile_field_obs: True   # Turn on to learn from camera or tactile images
+    use_camera_obs: False   # Turn on to learn from camera or tactile images
+    use_tactile_field_obs: False   # Turn on to learn from camera or tactile images
 
     num_gripper_move_sim_steps: 20  # number of timesteps to reserve for moving gripper before first step of episode
     num_gripper_close_sim_steps: 30  # number of timesteps to reserve for closing gripper onto plug during each reset
@@ -58,20 +49,20 @@ env:
     default_gripper_joint_friction: 0.5   # set to this value, when domain randomizing other joints
     default_gripper_joint_damping: 0.0   # set to this value, when domain randomizing other joints
     franka_open_gripper_width: 0.08   # finger joint target to open gripper
-    franka_close_gripper_width: 0.013 #0.001  # finger joint target to close gripper, 0.0 is fully closed, can be greater than 0 but needs to smaller than the width of the grasped object
+    franka_close_gripper_width: 0. #0.001  # finger joint target to close gripper, 0.0 is fully closed, can be greater than 0 but needs to smaller than the width of the grasped object
 
     use_physx_gripper_control: True
 
     use_gelsight: True  # flag to use Gelsight R1.5 finger
-    use_isaac_gym_tactile: True
+    use_isaac_gym_tactile: False
     use_compliant_contact: True
     compliance_stiffness: 50.0  # this number depends on the contact force. consequently, it's effect varies with gripper gains
     compliant_damping: 0.0
     elastomer_friction_factor: 0.5  # scale factor to increase/decrease the friction of the elastomer fingertip
-    tactile_subsample_ratio: 1 # orginal: 4
+    tactile_subsample_ratio: 4 # orginal: 4
     tactile_cam_euler_offset: [0.0, 0.0, 0.0]   # euler angle offset to tactile camera pose
     tactile_cam_zoom_level: 1.0   # scalar to zoom tactile camera in or out. If less than 1, zooms-in i.e. move camera closer
-    use_shear_force: True
+    use_shear_force: False
     num_shear_rows: 10
     num_shear_cols: 14
     zero_out_normal_force_field_obs: False  # flag to set the normal force field to zero and only use shear force field
@@ -81,7 +72,7 @@ env:
     franka_urdf_file: 'tacsl_franka_gelsight_r15.urdf'
     franka_asset_dir: tacsl   # directory where franka urdf file is located e.g. tacsl, industreal, factory
 
-    use_camera: True
+    use_camera: False
     camera_configs:
         - name: client
           is_body_camera: False
@@ -95,7 +86,7 @@ env:
           is_body_camera: True
           actor_name: franka
           attach_link_name: panda_hand
-          image_size: [256, 256]
+          image_size: [64, 64]
           image_type: rgb
           horizontal_fov: 75.0
           camera_pose: [[0.045, 0, 0.04], [0.5, 0, 0.866, 0]]     # R.from_euler('xyz', [0, -np.pi / 2, np.pi]).as_quat()
@@ -136,10 +127,10 @@ randomize:
     fingertip_midpoint_rot_noise: [0.1, 0.1, 0.1]  # noise on rotation
     plug_pos_in_gripper_noise_xy: [0.0, 0.0]  # noise on plug position within gripper
     plug_pos_z_in_gripper_noise_multiplier: 0  # [0, 1] scalar to multiply the noise level along z
-    # plug_noise_rot_in_gripper: [0.0, 0.0, 0.0]  # noise on plug rotation within gripper, z is along the axis of the gripper can be [-np.pi, np.pi], y is across the axis can be [-np.pi/10, np.pi/10]
-    plug_noise_rot_in_gripper: [0.0, 0.1745, 0.0]  # (10 degrees around y-axis) 
-    socket_pos_xyz_initial: [0.5, 0.0, 0.01]  # initial XY position of socket on table
-    socket_pos_xyz_noise: [0.05, 0.05, 0.0]  # random initialization level on socket position
+    plug_noise_rot_in_gripper: [0.0, 0.0, 0.0]  # noise on plug rotation within gripper, z is along the axis of the gripper can be [-np.pi, np.pi], y is across the axis can be [-np.pi/10, np.pi/10]
+    # plug_noise_rot_in_gripper: [0.0, 0.1745, 0.0]  # (10 degrees around y-axis) 
+    socket_pos_xyz_initial: [0.5, 0.0, 0.025]  # initial XY position of socket on table
+    socket_pos_xyz_noise: [0.05, 0.05, 0.01]  # random initialization level on socket position
     socket_rot_initial: [0.0, 0.0, 0.0]  # initial rotation of socket on table
     socket_rot_noise: [0.0, 0.0, 0.0]  # random initialization level on socket rotation
     # socket_rot_noise: [0.0, 0.0, 0.785398]  # random initialization level on socket rotation
@@ -196,12 +187,10 @@ rl:
     contact_rich_region_size_factor: 0.5  # fraction of socket diameter defining area with reduced contact penalty
     use_shaped_keypoint_reward: True  # Flag to keypoint-based reward, to handle concave shape of the socket, and avoid the solution of the peg ending on the side of the socket, especially when using contact pen
 
-    # close_error_thresh: 0.0089916 # threshold below which plug is considered close enough to socket/goal, socket depth: 0.0089916
-    close_error_thresh_lower: 0.030 # threshold below which plug is considered close enough to socket/goal
-    close_error_thresh_upper: 0.035 # threshold below which plug is considered close enough to socket/goal
+    close_error_thresh: 0.0069916 # threshold below which plug is considered close enough to socket/goal
     success_bonus: 0.0  # bonus if plug is close enough to the goal
 
-    max_episode_length: 100000
+    max_episode_length: 256
 
 ctrl:
     ctrl_type: task_space_impedance  # {gym_default,
@@ -262,7 +251,7 @@ ctrl:
         wrench_prop_gains: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
 
 ige_dr:
-  randomize: False
+  randomize: True
   randomization_params:
     frequency: 128  # Define min number of steps between randomizations; will only occur at resets
     actor_params:

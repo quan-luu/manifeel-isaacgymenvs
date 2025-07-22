@@ -265,6 +265,7 @@ class TacSLEnvInsertion(TacSLBase, TacSLSensors, FactoryABCEnv):
             socket_file = self.asset_info_insertion[subassembly][components[1]]['urdf_path'] + '.urdf'
             plug_options.density = self.asset_info_insertion[subassembly][components[0]]['density']
             socket_options.density = self.asset_info_insertion[subassembly][components[1]]['density']
+            print(f"[DEBUG] Plug density: {plug_options.density}, Socket density: {socket_options.density}")
             plug_asset_file_path = os.path.join(os.path.abspath(urdf_root), plug_file_parent_dir, plug_file)
             self.asset_file_paths['plug'] = plug_asset_file_path
             plug_asset = self.gym.load_asset(self.sim, os.path.join(urdf_root, plug_file_parent_dir), plug_file, plug_options)
@@ -358,6 +359,10 @@ class TacSLEnvInsertion(TacSLBase, TacSLSensors, FactoryABCEnv):
             else:
                 raise NotImplementedError
             self.socket_diameters.append(socket_diameter)
+            print(f"[DEBUG] socket height: {self.socket_heights}")
+            print(f"[DEBUG] socket diameter: {self.socket_diameters}")
+            print(f"[DEBUG] plug length: {self.plug_lengths}")
+            
 
             table_handle = self.gym.create_actor(env_ptr, self.assets['table'], table_pose, 'table', i, 0, 0)
             self.actor_handles['table'] = table_handle

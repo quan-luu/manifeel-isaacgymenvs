@@ -66,7 +66,7 @@ env:
     num_shear_cols: 14
     zero_out_normal_force_field_obs: False  # flag to set the normal force field to zero and only use shear force field
     asset_info_filename: 'industreal_asset_info_pegs.yaml'   # industreal_asset_info_pegs.yaml, tacsl_asset_info_peg_placement.yaml, tacsl_asset_info_bolt_on_nut.yaml
-    desired_subassemblies: [ 'round_peg_hole_16mm']   # see all options in FactoryEnvInsertion.yaml
+    desired_subassemblies: [ 'rectangular_peg_hole_16mm']   # see all options in FactoryEnvInsertion.yaml
 
     franka_urdf_file: 'tacsl_franka_gelsight_r15.urdf'
     franka_asset_dir: tacsl   # directory where franka urdf file is located e.g. tacsl, industreal, factory

@@ -88,7 +88,7 @@ class TacSLTaskPowerInsertion(TacSLTaskImageAugmentation, TacSLEnvInsertion, Fac
         self.image_obs_keys = [k for k, v in self.obs_dims.items() if len(v) > 2 and 'force_field' not in k]
         self.init_image_augmentation()
 
-        # self.reset_idx(torch.arange(self.num_envs))
+        self.reset_idx(torch.arange(self.num_envs))
 
     def initialize_franka_robot_open_hand(self):
         """
@@ -195,9 +195,9 @@ class TacSLTaskPowerInsertion(TacSLTaskImageAugmentation, TacSLEnvInsertion, Fac
     def pre_physics_step(self, actions):
         """Optionally reset environments at the end of episodes. Apply actions from policy as position/rotation targets."""
 
-        # env_ids = self.reset_buf.nonzero(as_tuple=False).squeeze(-1)
-        # if len(env_ids) > 0:
-        #     self.reset_idx(env_ids)
+        env_ids = self.reset_buf.nonzero(as_tuple=False).squeeze(-1)
+        if len(env_ids) > 0:
+            self.reset_idx(env_ids)
 
         self._actions = actions.clone().to(self.device)  # shape = (num_envs, num_actions); values = [-1, 1]
         # self._apply_actions_as_ctrl_targets(actions=self._actions,
@@ -383,21 +383,16 @@ class TacSLTaskPowerInsertion(TacSLTaskImageAugmentation, TacSLEnvInsertion, Fac
             self.apply_image_augmentation_to_obs_dict()
 
         self.obs_dict['socket_pos'][:] = self.socket_pos + self.socket_obs_noise
-        # self.obs_dict['socket_pos_gt'][:] = self.socket_pos
+        self.obs_dict['socket_pos_gt'][:] = self.socket_pos
 
         if self.cfg_task.env.use_shear_force:
-            tactile_force_field_dict, tactile_depth_dict = self.get_tactile_force_field_tensors_dict()
+            tactile_force_field_dict = self.get_tactile_force_field_tensors_dict()
             if self.cfg_task.env.use_tactile_field_obs:
-                # Define the mappings for tactile force fields and depths
-                keys = [
-                    # ('tactile_force_field_left', 'tactile_depth_left'),
-                    ('tactile_force_field_right', 'tactile_depth_right')
-                ]
-                for force_field_key, depth_key in keys:
-                    self.obs_dict[force_field_key][:] = tactile_force_field_dict[force_field_key]
-                    self.obs_dict[depth_key][:] = tactile_depth_dict[force_field_key]
+                # for k in ['tactile_force_field_left', 'tactile_force_field_right']:
+                for k in ['tactile_force_field_right']:
+                    self.obs_dict[k][:] = tactile_force_field_dict[k]
                     if self.cfg_task.env.zero_out_normal_force_field_obs:
-                        self.obs_dict[force_field_key][..., 0] *= 0.0
+                        self.obs_dict[k][..., 0] *= 0.0
         return self.obs_dict
 
     def compute_reward(self):
@@ -409,7 +404,6 @@ class TacSLTaskPowerInsertion(TacSLTaskImageAugmentation, TacSLEnvInsertion, Fac
     def _update_reset_buf(self):
         """Assign environments for reset if episode length expired."""
 
-        self.reset_buf[:] = self._check_success()
         # If max episode length has been reached
         self.reset_buf[:] = torch.where(self.progress_buf[:] >= self.cfg_task.rl.max_episode_length - 1,
                                         torch.ones_like(self.reset_buf),
@@ -456,19 +450,16 @@ class TacSLTaskPowerInsertion(TacSLTaskImageAugmentation, TacSLEnvInsertion, Fac
             contact_penalty = (contact_penalty * (1 - is_plug_centered.float()) +
                                contact_penalty * (is_plug_centered.float() * contact_pen_reduction_scalar))
 
-        # self.rew_buf[:] = keypoint_reward * self.cfg_task.rl.keypoint_reward_scale \
-        #                   + keypoint_reward_exp * self.cfg_task.rl.keypoint_reward_scale \
-        #                   - action_penalty * self.cfg_task.rl.action_penalty_scale \
-        #                   - action_grad_penalty * self.cfg_task.rl.action_gradient_penalty_scale \
-        #                   - contact_force_table * self.cfg_task.rl.contact_penalty_scale \
-        #                   - contact_penalty * self.cfg_task.rl.contact_penalty_scale
+        self.rew_buf[:] = keypoint_reward * self.cfg_task.rl.keypoint_reward_scale \
+                          + keypoint_reward_exp * self.cfg_task.rl.keypoint_reward_scale \
+                          - action_penalty * self.cfg_task.rl.action_penalty_scale \
+                          - action_grad_penalty * self.cfg_task.rl.action_gradient_penalty_scale \
+                          - contact_force_table * self.cfg_task.rl.contact_penalty_scale \
+                          - contact_penalty * self.cfg_task.rl.contact_penalty_scale
         
-        self.rew_buf[:] = keypoint_reward
-
     def reset_idx(self, env_ids):
         """Reset specified environments."""
 
-        #print(f'👆👆👆 reset_idx called')
         if self.cfg_task.randomize.randomize_compliance:
             if self.cfg_task.env.use_compliant_contact:
                 # sample_compliance
@@ -854,25 +845,12 @@ class TacSLTaskPowerInsertion(TacSLTaskImageAugmentation, TacSLEnvInsertion, Fac
     def _check_plug_close_to_socket(self):
         """Check if plug is close to socket."""
 
-        # TO-DO: update following threshold values in the config file
-        USB_lower = 0.30
-        USB_upper = 0.35
-        lower = USB_lower
-        upper = USB_upper
+        keypoint_dist = torch.norm(self.keypoints_socket - self.keypoints_plug, p=2, dim=-1)
 
-        keypoint_dist = torch.norm(self.keypoints_socket - self.keypoints_plug, 
-                                   p=2, 
-                                   dim=-1)
-        
-        key_point_dis_mean = torch.mean(keypoint_dist, dim=-1)
-        
-        is_plug_close_to_socket = torch.where(
-            (self.cfg_task.rl.close_error_thresh_lower < key_point_dis_mean) & 
-            (key_point_dis_mean < self.cfg_task.rl.close_error_thresh_upper),
-            torch.ones_like(self.progress_buf),
-            torch.zeros_like(self.progress_buf)
-        )       
-                
+        is_plug_close_to_socket = torch.where(torch.mean(keypoint_dist, dim=-1) < self.cfg_task.rl.close_error_thresh,
+                                              torch.ones_like(self.progress_buf),
+                                              torch.zeros_like(self.progress_buf))
+
         return is_plug_close_to_socket
 
     def _check_plug_is_centered_on_socket(self):
