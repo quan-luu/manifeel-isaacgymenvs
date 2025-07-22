@@ -2,18 +2,19 @@ power_3prongs:
     power_3prongs_plug:
         urdf_par_dir: 'industreal'
         urdf_path: 'power_plug'
-        diameter: 0.003988
+        width: 0.01809
+        depth: 0.01448
         length: 0.050
-        density: 80000.0 # default 8000.0
+        density: 8000.0 # default 8000.0
         friction: 1.0
         grasp_offset: 0.04
-        plug_width: 0.004
+        plug_width: 0.01809
     power_3prongs_socket:
         urdf_par_dir: 'industreal'
         urdf_path: 'power_socket'
-        diameter: 0.0041
-        height: 0.028
-        depth: 0.023
+        width: 0.01809
+        height: 0.00
+        depth: 0.01448
         density: 8000.0
         friction: 0.5
 

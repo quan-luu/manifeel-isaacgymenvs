@@ -200,12 +200,10 @@ class TacSLTaskPowerInsertion(TacSLTaskImageAugmentation, TacSLEnvInsertion, Fac
             self.reset_idx(env_ids)
 
         self._actions = actions.clone().to(self.device)  # shape = (num_envs, num_actions); values = [-1, 1]
-        # self._apply_actions_as_ctrl_targets(actions=self._actions,
-        #                                     ctrl_target_gripper_dof_pos=self.cfg_task.env.get("franka_close_gripper_width", 0.0),
-        #                                     do_scale=True)
+
         self._apply_actions_as_ctrl_targets(actions=self._actions,
-                                    ctrl_target_gripper_dof_pos=self.cfg_task.env.get("franka_close_gripper_width", 0.0),
-                                    do_scale=True)
+                                            ctrl_target_gripper_dof_pos=self.cfg_task.env.get("franka_close_gripper_width", 0.0),
+                                            do_scale=True)
 
         sim_dt_noise = self.cfg_task.env.get("sim_dt_noise", 0)
         if sim_dt_noise > 0.0:
@@ -408,7 +406,7 @@ class TacSLTaskPowerInsertion(TacSLTaskImageAugmentation, TacSLEnvInsertion, Fac
         self.reset_buf[:] = torch.where(self.progress_buf[:] >= self.cfg_task.rl.max_episode_length - 1,
                                         torch.ones_like(self.reset_buf),
                                         self.reset_buf)
-        
+
     def _update_rew_buf(self):
         """Compute reward at the current timestep."""
 
@@ -456,7 +454,7 @@ class TacSLTaskPowerInsertion(TacSLTaskImageAugmentation, TacSLEnvInsertion, Fac
                           - action_grad_penalty * self.cfg_task.rl.action_gradient_penalty_scale \
                           - contact_force_table * self.cfg_task.rl.contact_penalty_scale \
                           - contact_penalty * self.cfg_task.rl.contact_penalty_scale
-        
+
     def reset_idx(self, env_ids):
         """Reset specified environments."""
 
@@ -605,22 +603,11 @@ class TacSLTaskPowerInsertion(TacSLTaskImageAugmentation, TacSLEnvInsertion, Fac
                                          tip_dist_range_mag / 2. *
                                          self.cfg_task.randomize.plug_pos_z_in_gripper_noise_multiplier)
         # subtract from plug length to get the distance from the tip
-        fine_tuning_z =0.01  #0.015 #-0.05  # 👆-0.05 #Positive values means downward
-        ee_to_plug_tip_pos_local[:, 2] = plug_pos_in_gripper_z_sampled - self.plug_lengths.squeeze(-1) + fine_tuning_z
-
-        #plug_pos_in_gripper_noise[:, :2] = torch.tensor([[1.0, 2.0]], device="cuda:0")
-        #self.cfg_task.randomize.plug_pos_in_gripper_noise_xy = [-0.5, 0.2]  # 
+        ee_to_plug_tip_pos_local[:, 2] = plug_pos_in_gripper_z_sampled - self.plug_lengths.squeeze(-1)
 
         plug_pos_in_gripper_xy_sampled = plug_pos_in_gripper_noise[:, :2] @ torch.diag(
             torch.tensor(self.cfg_task.randomize.plug_pos_in_gripper_noise_xy, device=self.device))
-        #print("plug_pos_in_gripper_xy_sampled:", plug_pos_in_gripper_xy_sampled)
-        #print("plug_pos_in_gripper_noise_xy:", self.cfg_task.randomize.plug_pos_in_gripper_noise_xy)
-
-
         ee_to_plug_tip_pos_local[:, :2] = plug_pos_in_gripper_xy_sampled
-        print("👀ee_to_plug_tip_pos_local:", ee_to_plug_tip_pos_local.cpu().detach().numpy())
-        # print(f' plug_pos_in_gripper_xy_sampled: {plug_pos_in_gripper_xy_sampled}')
-        # print(f' plug_pos_in_gripper_noise[:, :2]: {plug_pos_in_gripper_noise[:, :2]}')
 
         world_to_plug_tip_quat, world_to_plug_tip_pos = torch_jit_utils.tf_combine(self.fingertip_midpoint_quat,
                                                                                    self.fingertip_midpoint_pos,
@@ -632,9 +619,6 @@ class TacSLTaskPowerInsertion(TacSLTaskImageAugmentation, TacSLEnvInsertion, Fac
             2 * (torch.rand((self.num_envs, 3), dtype=torch.float32, device=self.device) - 0.5)  # [-1, 1]
         plug_noise_rot_in_gripper *= torch.tensor(self.cfg_task.randomize.plug_noise_rot_in_gripper,
                                                   device=self.device).expand(self.num_envs, 3)
-        
-        # print(f' plug_noise_rot_in_gripper: {plug_noise_rot_in_gripper}')
-        
         # z is along the axis of the gripper so it has no effects for round pegs
         # y rotates in and out of the gripper axis
         # x rot should be zero
@@ -710,10 +694,6 @@ class TacSLTaskPowerInsertion(TacSLTaskImageAugmentation, TacSLEnvInsertion, Fac
 
     def _set_viewer_params(self):
         """Set viewer parameters."""
-        # cam_pos = gymapi.Vec3(-0.632, -0.221,  0.7196)
-        # cam_target = gymapi.Vec3(0., 0.4, 0.58)
-        # cam_pos = gymapi.Vec3(0.3, -0.7,  0.7)
-        # cam_target = gymapi.Vec3(0.3, 0.4, 0.2)
         cam_pos = gymapi.Vec3(1.2, 0.0, 0.5)
         cam_target = gymapi.Vec3(0.0, 0.0, 0.2)
         self.gym.viewer_camera_look_at(self.viewer, None, cam_pos, cam_target)
@@ -731,7 +711,7 @@ class TacSLTaskPowerInsertion(TacSLTaskImageAugmentation, TacSLEnvInsertion, Fac
         if do_scale:
             pos_actions = pos_actions @ torch.diag(torch.tensor(self.cfg_task.rl.pos_action_scale, device=self.device))
         self.ctrl_target_fingertip_midpoint_pos = self.fingertip_midpoint_pos + pos_actions
-        
+
         # Interpret actions as target rot (axis-angle) displacements
         rot_actions = actions[:, 3:6]
         if do_scale:

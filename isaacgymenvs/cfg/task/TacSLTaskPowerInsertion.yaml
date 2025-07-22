@@ -34,8 +34,8 @@ env:
 #                 'plug_pos': [ 3 ], 'plug_quat': [ 4 ] , 'socket_pos': [ 3 ], 'socket_quat': [ 4 ],
 #                 'dof_pos': [ 9 ], 'dof_vel': [ 9 ] }
 
-    use_camera_obs: True   # Turn on to learn from camera or tactile images
-    use_tactile_field_obs: True   # Turn on to learn from camera or tactile images
+    use_camera_obs: False   # Turn on to learn from camera or tactile images
+    use_tactile_field_obs: False   # Turn on to learn from camera or tactile images
 
     num_gripper_move_sim_steps: 20  # number of timesteps to reserve for moving gripper before first step of episode
     num_gripper_close_sim_steps: 30  # number of timesteps to reserve for closing gripper onto plug during each reset
@@ -54,7 +54,7 @@ env:
     use_physx_gripper_control: True
 
     use_gelsight: True  # flag to use Gelsight R1.5 finger
-    use_isaac_gym_tactile: True
+    use_isaac_gym_tactile: False
     use_compliant_contact: True
     compliance_stiffness: 50.0  # this number depends on the contact force. consequently, it's effect varies with gripper gains
     compliant_damping: 0.0
@@ -62,7 +62,7 @@ env:
     tactile_subsample_ratio: 4 # orginal: 4
     tactile_cam_euler_offset: [0.0, 0.0, 0.0]   # euler angle offset to tactile camera pose
     tactile_cam_zoom_level: 1.0   # scalar to zoom tactile camera in or out. If less than 1, zooms-in i.e. move camera closer
-    use_shear_force: True
+    use_shear_force: False
     num_shear_rows: 10
     num_shear_cols: 14
     zero_out_normal_force_field_obs: False  # flag to set the normal force field to zero and only use shear force field
@@ -73,7 +73,7 @@ env:
     franka_urdf_file: 'tacsl_franka_gelsight_r15.urdf'
     franka_asset_dir: tacsl   # directory where franka urdf file is located e.g. tacsl, industreal, factory
 
-    use_camera: True
+    use_camera: False
     camera_configs:
         - name: client
           is_body_camera: False
@@ -128,10 +128,10 @@ randomize:
     fingertip_midpoint_rot_noise: [0.1, 0.1, 0.1]  # noise on rotation
     plug_pos_in_gripper_noise_xy: [0.0, 0.0]  # noise on plug position within gripper
     plug_pos_z_in_gripper_noise_multiplier: 0  # [0, 1] scalar to multiply the noise level along z
-    # plug_noise_rot_in_gripper: [0.0, 0.0, 0.0]  # noise on plug rotation within gripper, z is along the axis of the gripper can be [-np.pi, np.pi], y is across the axis can be [-np.pi/10, np.pi/10]
-    plug_noise_rot_in_gripper: [0.0, 0.1745, 0.0]  # (10 degrees around y-axis) 
+    plug_noise_rot_in_gripper: [0.0, 0.0, 0.0]  # noise on plug rotation within gripper, z is along the axis of the gripper can be [-np.pi, np.pi], y is across the axis can be [-np.pi/10, np.pi/10]
+    # plug_noise_rot_in_gripper: [0.0, 0.1745, 0.0]  # (10 degrees around y-axis) 
     socket_pos_xyz_initial: [0.5, 0.0, 0.01]  # initial XY position of socket on table
-    socket_pos_xyz_noise: [0.05, 0.05, 0.0]  # random initialization level on socket position
+    socket_pos_xyz_noise: [0.05, 0.05, 0.01]  # random initialization level on socket position
     socket_rot_initial: [0.0, 0.0, 0.0]  # initial rotation of socket on table
     socket_rot_noise: [0.0, 0.0, 0.0]  # random initialization level on socket rotation
     # socket_rot_noise: [0.0, 0.0, 0.785398]  # random initialization level on socket rotation
@@ -186,9 +186,9 @@ rl:
     use_shaped_contact_pen: True  # Flag to shape contact penalty
     contact_pen_reduction_scalar: 0.01  # scalar factor to reduce contact force penalty during contact-rich of the peg at the entrance of the socket
     contact_rich_region_size_factor: 0.5  # fraction of socket diameter defining area with reduced contact penalty
-    use_shaped_keypoint_reward: False  # Flag to keypoint-based reward, to handle concave shape of the socket, and avoid the solution of the peg ending on the side of the socket, especially when using contact pen
+    use_shaped_keypoint_reward: True  # Flag to keypoint-based reward, to handle concave shape of the socket, and avoid the solution of the peg ending on the side of the socket, especially when using contact pen
 
-    close_error_thresh: 0.0069916  # threshold below which plug is considered close enough to socket/goal, socket depth: 0.0089916
+    close_error_thresh: 0.0069916 # threshold below which plug is considered close enough to socket/goal
     success_bonus: 0.0  # bonus if plug is close enough to the goal
 
     max_episode_length: 256
@@ -252,7 +252,7 @@ ctrl:
         wrench_prop_gains: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
 
 ige_dr:
-  randomize: False
+  randomize: True
   randomization_params:
     frequency: 128  # Define min number of steps between randomizations; will only occur at resets
     actor_params:
