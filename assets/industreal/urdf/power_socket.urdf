@@ -5,16 +5,9 @@
             <geometry>
                 <mesh filename="../mesh/TVB_mesh/power_socket.obj"/>                     
             </geometry>
-            <!-- <material name="LightRed">
-                <color rgba="1 0.3 0.3 1"/>
-            </material> -->
-            <!-- <material name="LightBlack">
-                <color rgba="0.3 0.3 0.3 1"/>
-            </material> -->
-
-                        <!-- <material name="Blue">
-                <color rgba="0.3 0.3 1 1"/>
-            </material> -->
+            <material name="socket_beige">
+                <color rgba="0.80 0.72 0.60 1.0"/>
+            </material>
         </visual>
         <collision>
             <geometry>
