@@ -4,7 +4,7 @@ power_3prongs:
         urdf_path: 'power_plug'
         width: 0.01809
         depth: 0.01448
-        length: 0.040
+        length: 0.050
         density: 8000.0 # default 8000.0
         friction: 1.0
         grasp_offset: 0.04
