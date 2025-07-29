@@ -225,7 +225,7 @@ class TacSLEnvGear(TacSLBaseGear, TacSLSensors, FactoryABCEnv):
         gear_options.max_linear_velocity = 1000.0  # default = 1000.0
         gear_options.angular_damping = 0.5  # default = 0.5
         gear_options.max_angular_velocity = 64.0  # default = 64.0
-        gear_options.disable_gravity = True # default = False
+        gear_options.disable_gravity = False # default = False
         gear_options.enable_gyroscopic_forces = True
         gear_options.default_dof_drive_mode = gymapi.DOF_MODE_NONE
         gear_options.use_mesh_materials = False

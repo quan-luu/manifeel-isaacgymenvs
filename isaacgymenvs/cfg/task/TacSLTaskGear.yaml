@@ -49,7 +49,7 @@ env:
     default_gripper_joint_friction: 0.5   # set to this value, when domain randomizing other joints
     default_gripper_joint_damping: 0.0   # set to this value, when domain randomizing other joints
     franka_open_gripper_width: 0.08   # finger joint target to open gripper
-    franka_close_gripper_width: 0. #0.006  # finger joint target to close gripper, 0.0 is fully closed, can be greater than 0 but needs to smaller than the width of the grasped object
+    franka_close_gripper_width: 0.003 #0.006  # finger joint target to close gripper, 0.0 is fully closed, can be greater than 0 but needs to smaller than the width of the grasped object
 
     use_physx_gripper_control: True
 
@@ -195,7 +195,7 @@ rl:
     close_error_thresh: 0.0049916 # threshold below which plug is considered close enough to socket/goal
     success_bonus: 0.0  # bonus if plug is close enough to the goal
 
-    max_episode_length: 512
+    max_episode_length: 256
 
 ctrl:
     ctrl_type: task_space_impedance  # {gym_default,

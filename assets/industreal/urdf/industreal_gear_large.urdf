@@ -5,6 +5,9 @@
             <geometry>
                 <mesh filename="../mesh/TVB_mesh/manifeel_gear_large.obj" scale="1 1 1"/>
             </geometry>
+            <material name="gear_metal">
+                <color rgba="0.69 0.69 0.69 1.0"/>
+            </material>
         </visual>
         <collision>
             <geometry>

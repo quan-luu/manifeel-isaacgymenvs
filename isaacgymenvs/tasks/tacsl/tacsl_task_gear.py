@@ -386,7 +386,6 @@ class TacSLTaskGear(TacSLTaskImageAugmentation, TacSLEnvGear, FactoryABCTask):
     def _update_reset_buf(self):
         """Assign environments for reset if episode length expired."""
 
-        self.reset_buf[:] = self._check_success()
         # If max episode length has been reached
         self.reset_buf[:] = torch.where(self.progress_buf[:] >= self.cfg_task.rl.max_episode_length - 1,
                                         torch.ones_like(self.reset_buf),
@@ -439,7 +438,7 @@ class TacSLTaskGear(TacSLTaskImageAugmentation, TacSLEnvGear, FactoryABCTask):
                           - action_grad_penalty * self.cfg_task.rl.action_gradient_penalty_scale \
                           - contact_force_table * self.cfg_task.rl.contact_penalty_scale \
                           - contact_penalty * self.cfg_task.rl.contact_penalty_scale
-        
+
     def reset_idx(self, env_ids):
         """Reset specified environments."""
 
@@ -639,7 +638,7 @@ class TacSLTaskGear(TacSLTaskImageAugmentation, TacSLEnvGear, FactoryABCTask):
         )
 
         # Simulate one step to apply changes
-        self.simulate_and_refresh()
+        # self.simulate_and_refresh()
 
     def _reset_small_large_gears(self):
         """Reset root state of small and large gears."""
@@ -674,7 +673,7 @@ class TacSLTaskGear(TacSLTaskImageAugmentation, TacSLEnvGear, FactoryABCTask):
         )
 
         # Simulate one step to apply changes
-        self.simulate_and_refresh()
+        # self.simulate_and_refresh()
 
     def _reset_medium_gear(self, before_move_to_grasp):
         """Reset root state of medium gear."""
@@ -696,7 +695,7 @@ class TacSLTaskGear(TacSLTaskImageAugmentation, TacSLEnvGear, FactoryABCTask):
             # offset along three axes
             offset_x = 0.00        
             offset_y = 0.0      
-            offset_z = -0.03
+            offset_z = -0.035
 
             # Set medium gear in the middle of gripper
             ee_to_gear_tip_pos_local[:, 0] = offset_x
@@ -770,7 +769,7 @@ class TacSLTaskGear(TacSLTaskImageAugmentation, TacSLEnvGear, FactoryABCTask):
         )
 
         # Simulate one step to apply changes
-        self.simulate_and_refresh()
+        # self.simulate_and_refresh()
 
     def _reset_buffers(self, env_ids):
         """Reset buffers. """
@@ -780,7 +779,7 @@ class TacSLTaskGear(TacSLTaskImageAugmentation, TacSLEnvGear, FactoryABCTask):
 
     def _set_viewer_params(self):
         """Set viewer parameters."""
-        cam_pos = gymapi.Vec3(1.2, 0.0, 0.5)
+        cam_pos = gymapi.Vec3(1.4, 0.1, 0.3)
         cam_target = gymapi.Vec3(0.0, 0.0, 0.2)
         self.gym.viewer_camera_look_at(self.viewer, None, cam_pos, cam_target)
 
