@@ -1,25 +1,17 @@
 <?xml version="1.0"?>
-<robot name="power_socekt_medium">
-    <link name="power_socekt_medium">
+<robot name="power_socket">
+    <link name="power_socket">
         <visual>
             <geometry>
-                <mesh filename="../mesh/TVB_mesh/power_socekt_medium.obj"/>                     
+                <mesh filename="../mesh/TVB_mesh/manifeel_power_socket.obj"/>                     
             </geometry>
-            <!-- <material name="LightRed">
+            <material name="LightRed">
                 <color rgba="1 0.3 0.3 1"/>
-            </material> -->
-            <!-- <material name="LightBlack">
-                <color rgba="0.3 0.3 0.3 1"/>
-            </material> -->
-
-                        <!-- <material name="Blue">
-                <color rgba="0.3 0.3 1 1"/>
-            </material> -->
+            </material>
         </visual>
         <collision>
             <geometry>
-                <mesh filename="../mesh/TVB_mesh/power_socekt_medium.obj"/> 
-                <!-- <mesh filename="../mesh/TVB_mesh/power_2prongs_socket.obj"/>                -->
+                <mesh filename="../mesh/TVB_mesh/manifeel_power_socket.obj"/> 
             </geometry>
             <sdf resolution="128"/>
         </collision>
