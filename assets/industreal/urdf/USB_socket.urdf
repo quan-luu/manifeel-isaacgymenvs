@@ -5,10 +5,10 @@
             <geometry>
                 <mesh filename="../mesh/TVB_mesh/manifeel_usb_socket.obj"/>                  
             </geometry>
+            <material name="LightRed">
+                <color rgba="1 0.3 0.3 1"/>
+            </material>
         </visual>
-        <material name="LightRed">
-            <color rgba="1 0.3 0.3 1"/>
-        </material>
         <collision>
             <geometry>
                 <mesh filename="../mesh/TVB_mesh/manifeel_usb_socket.obj"/>                
