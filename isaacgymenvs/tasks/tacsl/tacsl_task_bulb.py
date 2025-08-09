@@ -423,7 +423,7 @@ class TacSLTaskBulb(TacSLTaskImageAugmentation, TacSLEnvInsertion, FactoryABCTas
     def _update_rew_buf(self):
         """Compute reward at the current timestep."""
 
-        keypoint_diff = self.keypoints_socket[:, :, 2] - self.keypoints_plug[:, :, 2]
+        keypoint_diff = self.keypoints_socket - self.keypoints_plug
         keypoint_dist = torch.mean(torch.norm(keypoint_diff, p=2, dim=-1), dim=-1)
         keypoint_reward = -keypoint_dist
 
@@ -864,12 +864,12 @@ class TacSLTaskBulb(TacSLTaskImageAugmentation, TacSLEnvInsertion, FactoryABCTas
     def _check_plug_close_to_socket(self):
         """Check if plug is close to socket."""
 
-        keypoint_dist = torch.norm(self.keypoints_socket[:, :, 2] - self.keypoints_plug[:, :, 2], p=2, dim=-1)
+        keypoint_dist = torch.norm(self.keypoints_socket - self.keypoints_plug, p=2, dim=-1)
 
         is_plug_close_to_socket = torch.where(torch.mean(keypoint_dist, dim=-1) < self.cfg_task.rl.close_error_thresh,
                                               torch.ones_like(self.progress_buf),
                                               torch.zeros_like(self.progress_buf))        
-                
+
         return is_plug_close_to_socket
 
     def _check_plug_is_centered_on_socket(self):

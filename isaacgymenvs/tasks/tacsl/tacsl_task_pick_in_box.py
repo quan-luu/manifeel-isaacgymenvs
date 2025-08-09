@@ -201,12 +201,12 @@ class TacSLTaskPickInBox(TacSLTaskImageAugmentation, TacSLEnvInsertion, FactoryA
         #     self.reset_idx(env_ids)
 
         self._actions = actions.clone().to(self.device)  # shape = (num_envs, num_actions); values = [-1, 1]
-        self._apply_actions_as_ctrl_targets(actions=self._actions,
-                                    ctrl_target_gripper_dof_pos=self._actions[0, 6],  #  actions 6th -- gripper finger 
-                                    do_scale=True)
         # self._apply_actions_as_ctrl_targets(actions=self._actions,
-        #                             ctrl_target_gripper_dof_pos=self.cfg_task.env.get("franka_close_gripper_width", 0.0),
+        #                             ctrl_target_gripper_dof_pos=self._actions[0, 6],  #  actions 6th -- gripper finger 
         #                             do_scale=True)
+        self._apply_actions_as_ctrl_targets(actions=self._actions,
+                                    ctrl_target_gripper_dof_pos=self.cfg_task.env.get("franka_close_gripper_width", 0.0),
+                                    do_scale=True)
 
         sim_dt_noise = self.cfg_task.env.get("sim_dt_noise", 0)
         if sim_dt_noise > 0.0:
