@@ -7,20 +7,14 @@ import hydra
 import numpy as np
 import omegaconf
 import torch
-import os
-import warp as wp
 
 from isaacgym import gymapi, gymtorch, torch_utils
 import isaacgymenvs.tasks.factory.factory_control as fc
 from isaacgymenvs.tasks.factory.factory_schema_class_task import FactoryABCTask
 from isaacgymenvs.tasks.factory.factory_schema_config_task import FactorySchemaConfigTask
-from isaacgymenvs.tasks.tacsl.tacsl_env_insertion import TacSLEnvInsertion
 from isaacgymenvs.tasks.tacsl.tacsl_env_gear import TacSLEnvGear
 from isaacgymenvs.tasks.tacsl.tacsl_task_image_augmentation import TacSLTaskImageAugmentation
 from isaacgymenvs.utils import torch_jit_utils
-
-import isaacgymenvs.tasks.industreal.industreal_algo_utils as algo_utils
-from isaacgymenvs.tasks.industreal.industreal_env_gears import IndustRealEnvGears
 
 
 class TacSLTaskGear(TacSLTaskImageAugmentation, TacSLEnvGear, FactoryABCTask):
@@ -62,9 +56,6 @@ class TacSLTaskGear(TacSLTaskImageAugmentation, TacSLEnvGear, FactoryABCTask):
 
         self.image_obs_keys = [k for k, v in self.obs_dims.items() if len(v) > 2 and 'force_field' not in k]
         self.init_image_augmentation()
-
-        #
-        print(f"⎙🙾 task_type: {self.cfg_task.env.task_type}")
 
         # self.reset_idx(torch.arange(self.num_envs))
 
@@ -127,21 +118,19 @@ class TacSLTaskGear(TacSLTaskImageAugmentation, TacSLEnvGear, FactoryABCTask):
 
         return keypoint_offsets
 
-    ## new gear task need check
     def _acquire_task_tensors(self):
         """Acquire tensors."""
 
         # Gear-base tensors
         self.gear_keypoint_origin_local = torch.tensor([0.0, 0.0, 0.0], device=self.device).unsqueeze(0).repeat(self.num_envs, 1)
         self.base_keypoint_origin_local = torch.tensor([0.0, 0.0, 0.0], device=self.device).unsqueeze(0).repeat(self.num_envs, 1)
-        ## need check
+
         insertion_height = (1 - self.cfg_task.rl.insertion_frac) * self.asset_info_gears.gears.height
-        print(f'📏insertion_height {insertion_height}')
-        # need cheack self.base_keypoint_origin_local[:, 2]
-        self.base_keypoint_origin_local[:, 2] = insertion_height    
+
+        self.base_keypoint_origin_local[:, 2] = insertion_height + self.asset_info_gears.base.height
 
         self.base_tip_pos_local = torch.tensor([0.0, 0.0, 0.0], device=self.device).unsqueeze(0).repeat(self.num_envs, 1)
-        self.base_tip_pos_local[:, 2] = self.asset_info_gears.base.height
+        self.base_tip_pos_local[:, 2] = self.asset_info_gears.base.height + self.asset_info_gears.gears.height
 
         # Keypoint tensors
         self.keypoint_offsets = \
@@ -188,19 +177,11 @@ class TacSLTaskGear(TacSLTaskImageAugmentation, TacSLEnvGear, FactoryABCTask):
         # if len(env_ids) > 0:
         #     self.reset_idx(env_ids)
 
-        # print(f"✦✦ globals env_ids: {'env_ids' in globals()}")
-        # #print(f"✦🔍 Available Attributes in self: {dir(self)}")  
-        # if hasattr(self, "env_ids"):
-        #     print(f"✦🔍🔍 self.env_ids already exists: {self.env_ids}")  
-            
-
         self._actions = actions.clone().to(self.device)  # shape = (num_envs, num_actions); values = [-1, 1]
-        # self._apply_actions_as_ctrl_targets(actions=self._actions,
-        #                                     ctrl_target_gripper_dof_pos=self.cfg_task.env.get("franka_close_gripper_width", 0.0),
-        #                                     do_scale=True)
+
         self._apply_actions_as_ctrl_targets(actions=self._actions,
-                                    ctrl_target_gripper_dof_pos=self.cfg_task.env.get("franka_close_gripper_width", 0.0),
-                                    do_scale=True)
+                                            ctrl_target_gripper_dof_pos=self.cfg_task.env.get("franka_close_gripper_width", 0.0),
+                                            do_scale=True)
 
         sim_dt_noise = self.cfg_task.env.get("sim_dt_noise", 0)
         if sim_dt_noise > 0.0:
@@ -332,43 +313,38 @@ class TacSLTaskGear(TacSLTaskImageAugmentation, TacSLEnvGear, FactoryABCTask):
         """
         self.obs_dict['ee_pos'][:] = self.fingertip_midpoint_pos
         self.obs_dict['ee_quat'][:] = self.fingertip_midpoint_quat
-        self.obs_dict['base_pos'][:] = self.base_pos
-        self.obs_dict['base_quat'][:] = self.base_quat
-        #⚠
-        ### ⚠ need check and add in yaml
-        # print(f"👓")  
-        # print(f"👓gear_pos shape: {self.gear_pos.shape}")
-        # if 'gear_pos' in self.cfg_task.env.obsDims or self.cfg_task.rl.asymmetric_observations:
-        #     self.obs_dict['gear_pos'][:] = self.gear_pos
-        #     self.obs_dict['gear_quat'][:] = self.gear_quat
-        #     self.obs_dict['medium_gear_pos'][:] = self.gear_pos[:, 1, :]  # get the second gear
-        #     self.obs_dict['medium_gear_quat'][:] = self.gear_quat[:, 1, :]
+        self.obs_dict['socket_pos'][:] = self.base_pos
+        self.obs_dict['socket_quat'][:] = self.base_quat
 
-        # if 'eef_to_m_gear_pos' in self.cfg_task.env.obsDims:
-        #     eef_to_gear_transform = torch_jit_utils.tf_combine(
-        #         *torch_jit_utils.tf_inverse(self.fingertip_midpoint_quat, self.fingertip_midpoint_pos),
-        #         self.gear_quat, self.gear_pos
-        #     )
-        #     self.obs_dict['eef_to_gear_pos'][:] = eef_to_gear_transform[1]
-        #     self.obs_dict['eef_to_gear_quat'][:] = eef_to_gear_transform[0]
-        # ##need check
+        if 'plug_pos' in self.cfg_task.env.obsDims or self.cfg_task.rl.asymmetric_observations:
+            self.obs_dict['plug_pos'][:] = self.gear_medium_pos
+            self.obs_dict['plug_quat'][:] = self.gear_medium_quat
 
-        # if 'dof_pos' in self.cfg_task.env.obsDims or 'dof_pos' in self.cfg_task.env.stateDims:
-        #     self.obs_dict['dof_pos'][:] = self.dof_pos
-        # if 'dof_vel' in self.cfg_task.env.obsDims or 'dof_vel' in self.cfg_task.env.stateDims:
-        #     self.obs_dict['dof_vel'][:] = self.dof_vel
-        # if 'ee_lin_vel' in self.cfg_task.env.obsDims or self.cfg_task.rl.asymmetric_observations:
-        #     self.obs_dict['ee_lin_vel'][:] = self.fingertip_midpoint_linvel
-        #     self.obs_dict['ee_ang_vel'][:] = self.fingertip_midpoint_angvel
+        if 'eef_to_plug_pos' in self.cfg_task.env.obsDims:
+            eef_to_gear_transform = torch_jit_utils.tf_combine(
+                *torch_jit_utils.tf_inverse(self.fingertip_midpoint_quat, self.fingertip_midpoint_pos),
+                self.gear_medium_quat, self.gear_medium_pos
+            )
+            self.obs_dict['eef_to_plug_pos'][:] = eef_to_gear_transform[1]
+            self.obs_dict['eef_to_plug_quat'][:] = eef_to_gear_transform[0]
 
-        # if self.cfg_task.rl.add_contact_force_plug_decomposed or self.cfg_task.rl.add_contact_info_to_aac_states:
-        #     self.obs_dict['m_gear_base_force'][:] = self.contact_force_pairwise[:, self.gear_medium_body_id_env , self.base_body_id_env]
-        #     if self.cfg_task.env.use_compliant_contact:
-        #         self.obs_dict['m_gear_left_elastomer_force'][:] = self.contact_force_pairwise[:, self.gear_medium_body_id_env , self.franka_body_ids_env['elastomer_left']]
-        #         self.obs_dict['m_gear_right_elastomer_force'][:] = self.contact_force_pairwise[:, self.gear_medium_body_id_env , self.franka_body_ids_env['elastomer_right']]
-        #     else:
-        #         self.obs_dict['m_gear_left_elastomer_force'][:] = self.contact_force_pairwise[:, self.gear_medium_body_id_env , self.franka_body_ids_env['panda_leftfinger']]
-        #         self.obs_dict['m_gear_right_elastomer_force'][:] = self.contact_force_pairwise[:, self.gear_medium_body_id_env , self.franka_body_ids_env['panda_rightfinger']]
+
+        if 'dof_pos' in self.cfg_task.env.obsDims or 'dof_pos' in self.cfg_task.env.stateDims:
+            self.obs_dict['dof_pos'][:] = self.dof_pos
+        if 'dof_vel' in self.cfg_task.env.obsDims or 'dof_vel' in self.cfg_task.env.stateDims:
+            self.obs_dict['dof_vel'][:] = self.dof_vel
+        if 'ee_lin_vel' in self.cfg_task.env.obsDims or self.cfg_task.rl.asymmetric_observations:
+            self.obs_dict['ee_lin_vel'][:] = self.fingertip_midpoint_linvel
+            self.obs_dict['ee_ang_vel'][:] = self.fingertip_midpoint_angvel
+
+        if self.cfg_task.rl.add_contact_force_plug_decomposed or self.cfg_task.rl.add_contact_info_to_aac_states:
+            self.obs_dict['plug_socket_force'][:] = self.contact_force_pairwise[:, self.gear_medium_body_id_env, self.base_body_id_env]
+            if self.cfg_task.env.use_compliant_contact:
+                self.obs_dict['plug_left_elastomer_force'][:] = self.contact_force_pairwise[:, self.gear_medium_body_id_env, self.franka_body_ids_env['elastomer_left']]
+                self.obs_dict['plug_right_elastomer_force'][:] = self.contact_force_pairwise[:, self.gear_medium_body_id_env, self.franka_body_ids_env['elastomer_right']]
+            else:
+                self.obs_dict['plug_left_elastomer_force'][:] = self.contact_force_pairwise[:, self.gear_medium_body_id_env, self.franka_body_ids_env['panda_leftfinger']]
+                self.obs_dict['plug_right_elastomer_force'][:] = self.contact_force_pairwise[:, self.gear_medium_body_id_env, self.franka_body_ids_env['panda_rightfinger']]
 
         if self.cfg_task.env.use_camera_obs:
             images = self.get_camera_image_tensors_dict()
@@ -388,9 +364,8 @@ class TacSLTaskGear(TacSLTaskImageAugmentation, TacSLEnvGear, FactoryABCTask):
 
             self.apply_image_augmentation_to_obs_dict()
 
-        # self.obs_dict['gear_pos'][:] = self.gear_pos + self.gear_obs_noise
-        ### ⚠ need check
-        # self.obs_dict['socket_pos_gt'][:] = self.socket_pos
+        # self.obs_dict['socket_pos'][:] = self.base_pos + self.socket_obs_noise
+        # self.obs_dict['socket_pos_gt'][:] = self.base_pos
 
         if self.cfg_task.env.use_shear_force:
             tactile_force_field_dict, tactile_depth_dict = self.get_tactile_force_field_tensors_dict()
@@ -421,7 +396,7 @@ class TacSLTaskGear(TacSLTaskImageAugmentation, TacSLEnvGear, FactoryABCTask):
         self.reset_buf[:] = torch.where(self.progress_buf[:] >= self.cfg_task.rl.max_episode_length - 1,
                                         torch.ones_like(self.reset_buf),
                                         self.reset_buf)
-        
+
     def _update_rew_buf(self):
         """Compute reward at the current timestep."""
 
@@ -429,8 +404,7 @@ class TacSLTaskGear(TacSLTaskImageAugmentation, TacSLEnvGear, FactoryABCTask):
         keypoint_dist = torch.mean(torch.norm(keypoint_diff, p=2, dim=-1), dim=-1)
         keypoint_reward = -keypoint_dist
 
-        #uncentered_plug_dist_below_socket = self._get_peg_tip_distance_when_not_centered()
-        uncentered_plug_dist_below_socket = 0.0
+        uncentered_plug_dist_below_socket = self._get_peg_tip_distance_when_not_centered()
 
         # a, b = 50, 2
         a, b = 300, 0.0001
@@ -443,32 +417,37 @@ class TacSLTaskGear(TacSLTaskImageAugmentation, TacSLEnvGear, FactoryABCTask):
         action_grad_penalty = torch.norm(self._actions - self.prev_actions, p=2, dim=-1)
         contact_penalty = torch.norm(self.contact_force_pairwise[:, self.base_body_id_env], p=2, dim=-1).sum(1)
         contact_force_table = torch.norm(self.contact_force_pairwise[:, self.table_body_id], p=2, dim=-1).sum(1)
-        gear_base_force = self.contact_force_pairwise[:, self.gear_medium_body_id_env, self.base_body_id_env].clone()
-        contact_force_plug_socket = torch.norm(gear_base_force, p=1, dim=-1)
+        plug_socket_force = self.contact_force_pairwise[:, self.gear_medium_body_id_env, self.base_body_id_env].clone()
+        contact_force_plug_socket = torch.norm(plug_socket_force, p=1, dim=-1)
         finger_body_ids = [self.franka_body_ids_env['panda_leftfinger'], self.franka_body_ids_env['panda_rightfinger']]
-        base_fingers_force = self.contact_force_pairwise[:, self.base_body_id_env, finger_body_ids].clone()
-        contact_force_socket_fingers = torch.norm(base_fingers_force, p=2, dim=-1).sum(1)
+        socket_fingers_force = self.contact_force_pairwise[:, self.base_body_id_env, finger_body_ids].clone()
+        contact_force_socket_fingers = torch.norm(socket_fingers_force, p=2, dim=-1).sum(1)
 
-        # if self.cfg_task.rl.use_shaped_contact_pen:
-        #     # allow more contact interactions at the socket hole
-        #     plug_tip_pos = self.gear_pos
-        #     _, socket_tip_pos = torch_jit_utils.tf_combine(self.socket_quat, self.socket_pos,
-        #                                                    self.identity_quat, self.socket_tip_pos_local)
-        #     contact_rich_region_size_factor = self.cfg_task.rl.contact_rich_region_size_factor  # 0.1
-        #     planar_threshold = self.socket_diameters * contact_rich_region_size_factor
-        #     # is_tip_centre_on_path
-        #     is_plug_centered = torch.norm((plug_tip_pos - socket_tip_pos)[:, :2], dim=-1) < planar_threshold.squeeze(-1)
+        if self.cfg_task.rl.use_shaped_contact_pen:
+            # allow more contact interactions at the socket hole
+            plug_tip_pos = self.gear_medium_pos
+            _, socket_tip_pos = torch_jit_utils.tf_combine(self.base_quat, self.base_pos,
+                                                           self.identity_quat, self.base_tip_pos_local)
+            contact_rich_region_size_factor = self.cfg_task.rl.contact_rich_region_size_factor  # 0.1
+            planar_threshold = self.asset_info_gears.shafts.diameter * contact_rich_region_size_factor
+            # is_tip_centre_on_path
+            is_plug_centered = torch.norm((plug_tip_pos - socket_tip_pos)[:, :2], dim=-1) < planar_threshold
 
-        #     # if is_plug_centered, reduce the contact penalty by a scale factor
-        #     contact_pen_reduction_scalar = self.cfg_task.rl.contact_pen_reduction_scalar  # = 0.001
-        #     contact_penalty = (contact_penalty * (1 - is_plug_centered.float()) +
-        #                        contact_penalty * (is_plug_centered.float() * contact_pen_reduction_scalar))
+            # if is_plug_centered, reduce the contact penalty by a scale factor
+            contact_pen_reduction_scalar = self.cfg_task.rl.contact_pen_reduction_scalar  # = 0.001
+            contact_penalty = (contact_penalty * (1 - is_plug_centered.float()) +
+                               contact_penalty * (is_plug_centered.float() * contact_pen_reduction_scalar))
+
+        self.rew_buf[:] = keypoint_reward * self.cfg_task.rl.keypoint_reward_scale \
+                          + keypoint_reward_exp * self.cfg_task.rl.keypoint_reward_scale \
+                          - action_penalty * self.cfg_task.rl.action_penalty_scale \
+                          - action_grad_penalty * self.cfg_task.rl.action_gradient_penalty_scale \
+                          - contact_force_table * self.cfg_task.rl.contact_penalty_scale \
+                          - contact_penalty * self.cfg_task.rl.contact_penalty_scale
         
-        self.rew_buf[:] = keypoint_reward
-
     def reset_idx(self, env_ids):
         """Reset specified environments."""
-        #print(f'👆👆👆 reset_idx called')
+
         if self.cfg_task.randomize.randomize_compliance:
             if self.cfg_task.env.use_compliant_contact:
                 # sample_compliance
@@ -665,17 +644,17 @@ class TacSLTaskGear(TacSLTaskImageAugmentation, TacSLEnvGear, FactoryABCTask):
         )
 
         # Simulate one step to apply changes
-        self.simulate_and_refresh()
+        # self.simulate_and_refresh()
 
     def _reset_small_large_gears(self):
         """Reset root state of small and large gears."""
 
         # Set small and large gear pos to be pos in assembled state, plus vertical offset to prevent initial collision
         self.gear_small_pos[:, :] = self.base_pos + torch.tensor(
-            [0.0, 0.0, 0.002], device=self.device
+            [0.0, 0.0, 0.005], device=self.device
         )
         self.gear_large_pos[:, :] = self.base_pos + torch.tensor(
-            [0.0, 0.0, 0.002], device=self.device
+            [0.0, 0.0, 0.005], device=self.device
         )
 
         # Set small and large gear rot
@@ -700,7 +679,7 @@ class TacSLTaskGear(TacSLTaskImageAugmentation, TacSLEnvGear, FactoryABCTask):
         )
 
         # Simulate one step to apply changes
-        self.simulate_and_refresh()
+        # self.simulate_and_refresh()
 
     def _reset_medium_gear(self, before_move_to_grasp):
         """Reset root state of medium gear."""
@@ -720,9 +699,9 @@ class TacSLTaskGear(TacSLTaskImageAugmentation, TacSLEnvGear, FactoryABCTask):
             print(f'👆gear_half_height  {gear_half_height}')
 
             # offset along three axes
-            offset_x = 0.018           
+            offset_x = 0.00        
             offset_y = 0.0      
-            offset_z = -gear_half_height + 0.07
+            offset_z = -0.03
 
             # Set medium gear in the middle of gripper
             ee_to_gear_tip_pos_local[:, 0] = offset_x
@@ -738,72 +717,33 @@ class TacSLTaskGear(TacSLTaskImageAugmentation, TacSLEnvGear, FactoryABCTask):
             )
 
             # Rotate gear in hand
-            # plug_noise_rot_in_gripper = \
-            #     2 * (torch.rand((self.num_envs, 3), dtype=torch.float32, device=self.device) - 0.5)  # [-1, 1]
-            # plug_noise_rot_in_gripper *= torch.tensor(self.cfg_task.randomize.plug_noise_rot_in_gripper,
-            #                                         device=self.device).expand(self.num_envs, 3)
-            
-            # # z is along the axis of the gripper so it has no effects for round pegs
-            # # y rotates in and out of the gripper axis
-            # # x rot should be zero
-            # zero_translation = torch.zeros_like(world_to_gear_tip_pos)
-            # ee_to_gear_tip_rot_quat = torch_utils.quat_from_euler_xyz(plug_noise_rot_in_gripper[:, 0],
-            #                                                         plug_noise_rot_in_gripper[:, 1],
-            #                                                         plug_noise_rot_in_gripper[:, 2])
-
-            # world_to_gear_tip_quat, world_to_gear_tip_pos = torch_jit_utils.tf_combine(world_to_gear_tip_quat,
-            #                                                                         world_to_gear_tip_pos,
-            #                                                                         ee_to_gear_tip_rot_quat,
-            #                                                                         zero_translation)
-
-            # Offset from gear tip frame to handle-aligned frame (in local gear frame)
-            offset = torch.tensor([[0.017, 0.0, 0.08]], device=self.device).expand(self.num_envs, 3)
-
-            # Step 1: Move to handle-aligned frame
-            handle_offset_translation = offset
-            neg_handle_offset_translation = -offset
-
-            # Step 2: Generate rotation (same as before)
-            plug_noise_rot_in_gripper = 2 * (torch.rand((self.num_envs, 3), dtype=torch.float32, device=self.device) - 0.5)
+            plug_noise_rot_in_gripper = \
+                2 * (torch.rand((self.num_envs, 3), dtype=torch.float32, device=self.device) - 0.5)  # [-1, 1]
             plug_noise_rot_in_gripper *= torch.tensor(self.cfg_task.randomize.plug_noise_rot_in_gripper,
                                                     device=self.device).expand(self.num_envs, 3)
+            
+            # z is along the axis of the gripper so it has no effects for round pegs
+            # y rotates in and out of the gripper axis
+            # x rot should be zero
+            zero_translation = torch.zeros_like(world_to_gear_tip_pos)
+            ee_to_gear_tip_rot_quat = torch_utils.quat_from_euler_xyz(plug_noise_rot_in_gripper[:, 0],
+                                                                    plug_noise_rot_in_gripper[:, 1],
+                                                                    plug_noise_rot_in_gripper[:, 2])
 
-            # Note: Still zero x-rot
-            ee_to_gear_handle_rot_quat = torch_utils.quat_from_euler_xyz(plug_noise_rot_in_gripper[:, 0],
-                                                                        plug_noise_rot_in_gripper[:, 1],
-                                                                        plug_noise_rot_in_gripper[:, 2])
+            world_to_gear_tip_quat, world_to_gear_tip_pos = torch_jit_utils.tf_combine(world_to_gear_tip_quat,
+                                                                                    world_to_gear_tip_pos,
+                                                                                    ee_to_gear_tip_rot_quat,
+                                                                                    zero_translation)
 
-            # Step 3: Apply transform:
-            # a) move to handle frame
-            # b) rotate
-            # c) move back to gear tip frame
-
-            # a) Translate gear tip -> handle-aligned frame
-            _, temp_pos = torch_jit_utils.tf_combine(
-                world_to_gear_tip_quat, world_to_gear_tip_pos,
-                self.identity_quat,
-                handle_offset_translation
-            )
-
-            # b) Rotate around handle-aligned frame
-            temp_quat, temp_pos = torch_jit_utils.tf_combine(
-                world_to_gear_tip_quat, temp_pos,
-                ee_to_gear_handle_rot_quat,
-                torch.zeros_like(temp_pos)
-            )
-
-            identity_quat = torch.tensor([0, 0, 0, 1], device=self.device).expand(self.num_envs, 4)
-            # c) Translate back: handle-aligned frame -> gear tip
-            world_to_gear_tip_quat, world_to_gear_tip_pos = torch_jit_utils.tf_combine(
-                temp_quat, temp_pos,
-                self.identity_quat,
-                neg_handle_offset_translation
-            )
-
+            # 180-degree rotation around local X-axis
+            quat_flip_x = torch.tensor([1, 0, 0, 0], device=self.device).unsqueeze(0).repeat(self.num_envs, 1)
+            # Apply the rotation: rotate in local frame, so multiply on the LEFT
+            world_to_gear_tip_quat = torch_jit_utils.quat_mul(quat_flip_x, world_to_gear_tip_quat)
 
             # cal medium_gear to root position
             gear_tip_to_base_local = torch.zeros_like(self.fingertip_midpoint_pos)
-            gear_tip_to_base_local[:, 2] = gear_half_height  
+            gear_tip_to_base_local[:, 0] = 0.008
+            gear_tip_to_base_local[:, 2] = -self.asset_info_gears.shafts.height
 
             world_to_gear_base_quat, world_to_gear_base_pos = torch_jit_utils.tf_combine(
                 world_to_gear_tip_quat,
@@ -811,9 +751,9 @@ class TacSLTaskGear(TacSLTaskImageAugmentation, TacSLEnvGear, FactoryABCTask):
                 self.identity_quat,    
                 gear_tip_to_base_local  
             )
-            # # ✨ flip 🐓 xyzw   # 0.866, 0.5, 0, 0]
-            quat_flip_x = torch.tensor([1, 0, 0, 0], device=self.device).unsqueeze(0).repeat(self.num_envs, 1)
-            world_to_gear_base_quat = torch_jit_utils.quat_mul(quat_flip_x, world_to_gear_base_quat)
+            # # # ✨ flip 🐓 xyzw   # 0.866, 0.5, 0, 0]
+            # quat_flip_x = torch.tensor([1, 0, 0, 0], device=self.device).unsqueeze(0).repeat(self.num_envs, 1)
+            # world_to_gear_base_quat = torch_jit_utils.quat_mul(quat_flip_x, world_to_gear_base_quat)
 
             # set medium_gear's  root state
             self.gear_medium_pos[:, :] = world_to_gear_base_pos
@@ -835,7 +775,7 @@ class TacSLTaskGear(TacSLTaskImageAugmentation, TacSLEnvGear, FactoryABCTask):
         )
 
         # Simulate one step to apply changes
-        self.simulate_and_refresh()
+        # self.simulate_and_refresh()
 
     def _reset_buffers(self, env_ids):
         """Reset buffers. """
@@ -845,10 +785,6 @@ class TacSLTaskGear(TacSLTaskImageAugmentation, TacSLEnvGear, FactoryABCTask):
 
     def _set_viewer_params(self):
         """Set viewer parameters."""
-        # cam_pos = gymapi.Vec3(-0.632, -0.221,  0.7196)
-        # cam_target = gymapi.Vec3(0., 0.4, 0.58)
-        # cam_pos = gymapi.Vec3(0.3, -0.7,  0.7)
-        # cam_target = gymapi.Vec3(0.3, 0.4, 0.2)
         cam_pos = gymapi.Vec3(1.2, 0.0, 0.5)
         cam_target = gymapi.Vec3(0.0, 0.0, 0.2)
         self.gym.viewer_camera_look_at(self.viewer, None, cam_pos, cam_target)
@@ -866,7 +802,7 @@ class TacSLTaskGear(TacSLTaskImageAugmentation, TacSLEnvGear, FactoryABCTask):
         if do_scale:
             pos_actions = pos_actions @ torch.diag(torch.tensor(self.cfg_task.rl.pos_action_scale, device=self.device))
         self.ctrl_target_fingertip_midpoint_pos = self.fingertip_midpoint_pos + pos_actions
-        
+
         # Interpret actions as target rot (axis-angle) displacements
         rot_actions = actions[:, 3:6]
         if do_scale:
@@ -959,20 +895,36 @@ class TacSLTaskGear(TacSLTaskImageAugmentation, TacSLEnvGear, FactoryABCTask):
             self.render()
             self.gym.simulate(self.sim)
 
+    def _get_peg_tip_distance_when_not_centered(self):
+        """Get distance of the tip of the peg below the level of the socket, when the peg is not centered.
+        Used to penalize a common failure case when the peg is upright beside the socket and not inside the socket
+        """
+        plug_tip_pos = self.gear_medium_pos
+        _, socket_tip_pos = torch_jit_utils.tf_combine(self.base_quat, self.base_pos,
+                                                       self.identity_quat, self.base_tip_pos_local)
+        planar_threshold = self.asset_info_gears.shafts.diameter * 0.5
+        # is_tip_centre_on_path
+        is_plug_centered = torch.norm((plug_tip_pos - socket_tip_pos)[:, :2], dim=-1) < planar_threshold
+        # is_tip_below_socket_opening
+        plug_dist_below_socket = (plug_tip_pos - socket_tip_pos)[:, 2]
+        plug_dist_below_socket[plug_dist_below_socket > 0] = 0  # zero out points above the socket
+        plug_dist_below_socket = -plug_dist_below_socket    # distance magnitude below socket
+        not_centered_dist_below_socket_tip = (1.0 - is_plug_centered.float()) * plug_dist_below_socket
+
+        return not_centered_dist_below_socket_tip
+
+
     def _check_gear_plug_close_to_socket(self):
         """Check if plug is close to socket."""
 
         keypoint_dist = torch.norm(self.keypoints_base - self.keypoints_gear, p=2, dim=-1)
-
-        # is_gear_close_to_base = torch.where(self.cfg_task.rl.close_error_thresh_lower < torch.mean(keypoint_dist, dim=-1) &
-        #                                     torch.mean(keypoint_dist, dim=-1)< self.cfg_task.rl.close_error_thresh_upper,
-        #                                       torch.ones_like(self.progress_buf),
-        #                                       torch.zeros_like(self.progress_buf))    
+        
         
         is_gear_close_to_base = torch.where(torch.mean(keypoint_dist, dim=-1) < self.cfg_task.rl.close_error_thresh,
                                               torch.ones_like(self.progress_buf),
                                               torch.zeros_like(self.progress_buf)) 
 
+        print(f"keypoint_distance: {torch.mean(keypoint_dist, dim=-1)}")
         return is_gear_close_to_base
 
     # def _check_gear_plug_is_centered_on_socket(self):

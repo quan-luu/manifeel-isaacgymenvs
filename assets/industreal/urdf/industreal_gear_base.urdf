@@ -3,17 +3,21 @@
     <link name="industreal_gear_base">
         <visual>
             <geometry>
-                <!-- <mesh filename="../mesh/industreal_gears/industreal_gear_base.obj"/> -->
-                <mesh filename="../mesh/TVB_mesh/gear_base_origin_Mar21.obj" scale="2 2 2"/>
+                <mesh filename="../mesh/TVB_mesh/manifeel_gear_base.obj" scale="1 1 1"/>
             </geometry>
-            <material name="DarkGreen">
-                <color rgba="0.0 0.4 0.0 1.0"/>
+            <material name="metal_silver">
+                <color rgba="0.1 0.1 0.1 1.0"/>
             </material>
+            <!-- <material name="shaft_copper">
+                <color rgba="0.76 0.53 0.25 1.0"/>
+            </material> -->
+            <!-- <material name="DarkGreen">
+                <color rgba="0.0 0.4 0.0 1.0"/>
+            </material> -->
         </visual>
         <collision>
             <geometry>
-                <!-- <mesh filename="../mesh/industreal_gears/industreal_gear_base.obj"/> -->
-                <mesh filename="../mesh/TVB_mesh/gear_base_origin_Mar21.obj" scale="2 2 2"/>
+                <mesh filename="../mesh/TVB_mesh/manifeel_gear_base.obj" scale="1 1 1"/>
             </geometry>
             <sdf resolution="64"/>
         </collision>
