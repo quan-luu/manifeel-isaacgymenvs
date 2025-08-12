@@ -919,12 +919,10 @@ class TacSLTaskGear(TacSLTaskImageAugmentation, TacSLEnvGear, FactoryABCTask):
 
         keypoint_dist = torch.norm(self.keypoints_base - self.keypoints_gear, p=2, dim=-1)
         
-        
         is_gear_close_to_base = torch.where(torch.mean(keypoint_dist, dim=-1) < self.cfg_task.rl.close_error_thresh,
                                               torch.ones_like(self.progress_buf),
                                               torch.zeros_like(self.progress_buf)) 
 
-        print(f"keypoint_distance: {torch.mean(keypoint_dist, dim=-1)}")
         return is_gear_close_to_base
 
     # def _check_gear_plug_is_centered_on_socket(self):
