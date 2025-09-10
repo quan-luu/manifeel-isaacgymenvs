@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<robot name="bulb_socket">
+    <link name="bulb_socket">
+        <visual>
+            <geometry>
+                <mesh filename="../mesh/factory_nut_bolt/manifeel_bulb_socket.obj"/>
+            </geometry>
+            <material name="socket_metal">
+                <color rgba="0.4 0.4 0.4 1.0"/> <!-- Dark gray -->
+            </material>
+        </visual>
+        <collision>
+            <geometry>
+                <mesh filename="../mesh/factory_nut_bolt/manifeel_bulb_socket.obj"/>
+            </geometry>
+            <sdf resolution="256"/>
+        </collision>
+    </link>
+</robot>

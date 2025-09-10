@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<robot name="bulb">
+    <link name="bulb">
+        <visual>
+            <geometry>
+                <mesh filename="../mesh/factory_nut_bolt/manifeel_bulb.obj" scale="1.0 1.0 1.0"/>
+            </geometry>
+            <material name="bulb_glass">
+                <color rgba="0.95 0.95 1.0 0.6"/> <!-- Semi-transparent white -->
+            </material>
+        </visual>
+        <collision>
+            <geometry>
+                <mesh filename="../mesh/factory_nut_bolt/manifeel_bulb.obj" scale="1.0 1.0 1.0"/>
+            </geometry>
+            <sdf resolution="256"/>
+        </collision>
+    </link>
+</robot>
