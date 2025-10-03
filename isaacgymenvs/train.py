@@ -99,6 +99,8 @@ def launch_rlg_hydra(cfg: DictConfig):
     from isaacgymenvs.learning import amp_network_builder
     from isaacgymenvs.learning import a2c_dict_network_builder
     import isaacgymenvs
+    import torch
+    torch.cuda.empty_cache()
 
 
     time_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")

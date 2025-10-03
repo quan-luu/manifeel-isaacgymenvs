@@ -108,8 +108,10 @@ class FactoryBase(VecTask, FactoryABCBase):
     def import_franka_assets(self):
         """Set Franka and table asset options. Import assets."""
 
-        urdf_root = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'assets', 'factory', 'urdf')
-        franka_file = 'factory_franka.urdf'
+        # urdf_root = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'assets', 'factory', 'urdf')
+        # franka_file = 'factory_franka.urdf'
+        urdf_root = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'assets', 'tacsl', 'urdf')
+        franka_file = 'tacsl_franka_gelsight_r15.urdf'
 
         franka_options = gymapi.AssetOptions()
         franka_options.flip_visual_attachments = True

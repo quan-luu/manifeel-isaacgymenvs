@@ -44,14 +44,14 @@ multi_gpu: False
 wandb_activate: True
 wandb_group: ''
 wandb_name: ${experiment}_${seed}
-wandb_entity: 'mars-aloha'
-wandb_project: 'manifeel_rl_test'
+wandb_entity: 'tope'
+wandb_project: 'manifeel_rl_new_assets2'
 wandb_tags: []
 wandb_logcode_dir: '' 
 
-capture_video: True
+capture_video: False
 capture_video_freq: 1464
-capture_video_len: 100
+capture_video_len: 1000
 force_render: True
 
 # disables rendering

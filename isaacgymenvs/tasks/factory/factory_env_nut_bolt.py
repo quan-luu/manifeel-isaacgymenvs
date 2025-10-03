@@ -232,7 +232,10 @@ class FactoryEnvNutBolt(FactoryBase, FactoryABCEnv):
                                                                   gymapi.DOMAIN_ACTOR)
             right_finger_id = self.gym.find_actor_rigid_body_index(env_ptr, franka_handle, 'panda_rightfinger',
                                                                    gymapi.DOMAIN_ACTOR)
-            self.shape_ids = [link7_id, hand_id, left_finger_id, right_finger_id]
+            # self.shape_ids = [link7_id, hand_id, left_finger_id, right_finger_id]
+            rb_ids = [link7_id, hand_id, left_finger_id, right_finger_id]
+            rb_shape_indices = self.gym.get_asset_rigid_body_shape_indices(franka_asset)
+            self.shape_ids = [rb_shape_indices[rb_id].start for rb_id in rb_ids]
 
             franka_shape_props = self.gym.get_actor_rigid_shape_properties(env_ptr, franka_handle)
             for shape_id in self.shape_ids:

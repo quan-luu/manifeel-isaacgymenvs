@@ -713,7 +713,7 @@ class TactileFieldSensor(TactileBase):
         self.vt_lookup_save_counter = 0
         self.vt_lookup_save_interval = 500  # Save every 200 frames
 
-        self.load_vt_lookup_table("/scratch/gilbreth/luu15/Projects/TVB/assets/my_vt_lookup_table_impedance.pkl")
+        self.load_vt_lookup_table("/home/ielabs/Manifeel/manifeel-isaacgymenvs/assets/my_vt_lookup_table_impedance.pkl")
 
     def query_collision(self, sdf, tf_sdf, sdf_linvel_world, sdf_angvel_world, points_world, velocity_world):
         """

@@ -93,8 +93,8 @@ class TacSLBase(FactoryBase, FactoryABCBase):
         if self.cfg_base.sim.add_damping:
             franka_options.linear_damping = 1.0  # default = 0.0; increased to improve stability
             franka_options.max_linear_velocity = 1.0  # default = 1000.0; reduced to prevent CUDA errors
-            franka_options.angular_damping = 5.0  # default = 0.5; increased to improve stability
-            franka_options.max_angular_velocity = 2 * math.pi  # default = 64.0; reduced to prevent CUDA errors
+            franka_options.angular_damping = 50 # default = 0.5; increased to improve stability
+            franka_options.max_angular_velocity = 2*math.pi  # default = 64.0; reduced to prevent CUDA errors
         else:
             franka_options.linear_damping = 0.0  # default = 0.0
             franka_options.max_linear_velocity = 1000.0  # default = 1000.0

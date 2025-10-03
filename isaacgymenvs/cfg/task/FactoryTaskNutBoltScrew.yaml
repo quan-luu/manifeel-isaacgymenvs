@@ -18,6 +18,7 @@ env:
 
 randomize:
     franka_arm_initial_dof_pos: [1.5178e-03, -1.9651e-01, -1.4364e-03, -1.9761e+00, -2.7717e-04, 1.7796e+00, 7.8556e-01]
+    # franka_arm_initial_dof_pos: [0.0015, -1.9651e-01,   0.00,   -1.85,  -0.0003, 1.72,  0.7856]
     nut_rot_initial: 30.0  # initial rotation of nut from configuration in CAD [deg]; default = 30.0 (gripper aligns with flat surfaces of nut)
 
 rl:

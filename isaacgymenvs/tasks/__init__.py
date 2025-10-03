@@ -60,7 +60,8 @@ from .tacsl.tacsl_task_insertion import TacSLTaskInsertion
 from .tacsl.tacsl_task_USB import TacSLTaskUSB
 from .tacsl.tacsl_task_power import TacSLTaskPowerInsertion
 from .tacsl.tacsl_task_gear import TacSLTaskGear
-
+from .tacsl.tacsl_task_bulb import TacSLTaskBulb
+from .tacsl.tacsl_task_bulb_socket import TacSLTaskBulbSocketScrew
 
 def resolve_allegro_kuka(cfg, *args, **kwargs):
     subtask_name: str = cfg["env"]["subtask"]
@@ -119,5 +120,7 @@ isaacgym_task_map = {
     "TacSLTaskUSB": TacSLTaskUSB,
     "TacSLTaskPowerInsertion": TacSLTaskPowerInsertion,
     "TacSLTaskGear": TacSLTaskGear,
+    # "TacSLTaskBulb": TacSLTaskBulb,
+    "TacSLTaskBulbSocketScrew": TacSLTaskBulbSocketScrew,
     "Trifinger": Trifinger,
 }

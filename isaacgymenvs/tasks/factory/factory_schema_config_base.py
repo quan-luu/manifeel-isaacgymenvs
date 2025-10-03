@@ -55,6 +55,7 @@ class PhysX:
     friction_offset_threshold: float  # default = 0.04
     friction_correlation_distance: float  # default = 0.025
     max_gpu_contact_pairs: int  # default = 1024 * 1024
+    gpu_collision_stack_size: int # default = 700 * 1024 * 1024  to increase PxGpuDynamicsMemoryConfig::collisionStackSize
     default_buffer_size_multiplier: float
     contact_collection: int  # 0: CC_NEVER (do not collect contact info), 1: CC_LAST_SUBSTEP (collect contact info on last substep), 2: CC_ALL_SUBSTEPS (collect contact info at all substeps)
 
