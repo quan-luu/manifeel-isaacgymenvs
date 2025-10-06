@@ -3,15 +3,18 @@
     <link name="industreal_gear_medium">
         <visual>
             <geometry>
-                <mesh filename="../mesh/TVB_mesh/manifeel_gear_medium.obj" scale="0.98 0.98 0.98"/>
+                <mesh filename="../mesh/TVB_mesh/manifeel_gear_medium.obj" scale="0.965 0.965 0.965"/>
             </geometry>
-            <material name="gear_metal">
+            <!-- <material name="gear_metal">
                 <color rgba="0.9 0.9 0.9 1.0"/>
+            </material> -->
+            <material name="blue">
+                <color rgba="0.3 0.3 1.0 1.0"/>
             </material>
         </visual>
         <collision>
             <geometry>
-                <mesh filename="../mesh/TVB_mesh/manifeel_gear_medium.obj" scale="0.98 0.98 0.98"/>
+                <mesh filename="../mesh/TVB_mesh/manifeel_gear_medium.obj" scale="0.965 0.965 0.965"/>
             </geometry>
             <sdf resolution="32"/>
         </collision>

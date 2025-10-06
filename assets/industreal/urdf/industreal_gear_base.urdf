@@ -5,15 +5,15 @@
             <geometry>
                 <mesh filename="../mesh/TVB_mesh/manifeel_gear_base.obj" scale="1 1 1"/>
             </geometry>
-            <material name="metal_silver">
+            <!-- <material name="metal_silver">
                 <color rgba="0.1 0.1 0.1 1.0"/>
-            </material>
+            </material> -->
             <!-- <material name="shaft_copper">
                 <color rgba="0.76 0.53 0.25 1.0"/>
             </material> -->
-            <!-- <material name="DarkGreen">
+            <material name="DarkGreen">
                 <color rgba="0.0 0.4 0.0 1.0"/>
-            </material> -->
+            </material>
         </visual>
         <collision>
             <geometry>
