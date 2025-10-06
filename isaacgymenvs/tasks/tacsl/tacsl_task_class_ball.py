@@ -68,12 +68,12 @@ class TacSLTaskClassBall(TacSLTaskImageAugmentation, TacSLEnvBall, FactoryABCTas
         # print(f"⎙🙾 task_type: {self.cfg_task.env.task_type}")
         # 🔦 randomize light parameters
 
-        l_color = gymapi.Vec3(1.0, 0.6, 0.2)
-        # l_color = gymapi.Vec3(0.7, 0.7, 0.7)        
-        l_ambient = gymapi.Vec3(0.0, 0.0, 0.0)       # medium env light
-        # l_direction = gymapi.Vec3(0.0, -1.0, -0.5)   # light direction
-        l_direction = gymapi.Vec3(0.5, 0.5, 0.0)   
-        self.gym.set_light_parameters(self.sim, 0, l_color, l_ambient, l_direction)
+        # l_color = gymapi.Vec3(1.0, 0.6, 0.2)
+        # # l_color = gymapi.Vec3(0.7, 0.7, 0.7)        
+        # l_ambient = gymapi.Vec3(0.0, 0.0, 0.0)       # medium env light
+        # # l_direction = gymapi.Vec3(0.0, -1.0, -0.5)   # light direction
+        # l_direction = gymapi.Vec3(0.5, 0.5, 0.0)   
+        # self.gym.set_light_parameters(self.sim, 0, l_color, l_ambient, l_direction)
 
         # self.reset_idx(torch.arange(self.num_envs))
 
@@ -656,7 +656,7 @@ class TacSLTaskClassBall(TacSLTaskImageAugmentation, TacSLEnvBall, FactoryABCTas
         )
 
         # Simulate one step to apply changes
-        self.simulate_and_refresh()
+        # self.simulate_and_refresh()
 
     ##### set table tennis ball a radom position #####
     #
@@ -701,7 +701,7 @@ class TacSLTaskClassBall(TacSLTaskImageAugmentation, TacSLEnvBall, FactoryABCTas
         )
 
         # Simulate one step to apply changes
-        self.simulate_and_refresh()
+        # self.simulate_and_refresh()
     
     def _reset_medium_gear(self, before_move_to_grasp):
         """Reset root state of medium gear."""
@@ -737,7 +737,7 @@ class TacSLTaskClassBall(TacSLTaskImageAugmentation, TacSLEnvBall, FactoryABCTas
             gymtorch.unwrap_tensor(gear_medium_actor_ids_sim),
             len(gear_medium_actor_ids_sim),
         )
-        self.simulate_and_refresh()
+        # self.simulate_and_refresh()
 
     def _reset_buffers(self, env_ids):
         """Reset buffers. """
