@@ -35,6 +35,10 @@ from collections.abc import Iterable
 
 # import matplotlib.pyplot as plt
 
+
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+LOOKUP_TABLE_PATH = os.path.join(CURRENT_DIR, "my_vt_lookup_table_impedance.pkl")
+
 def get_camera_config(sensor_type, tactile_camera_name, actor_name, attach_link_name):
     """
     Get the camera configuration based on the sensor type.
@@ -759,7 +763,7 @@ class TactileFieldSensor(TactileBase):
         self.vt_lookup_save_counter = 0
         self.vt_lookup_save_interval = 500  # Save every 200 frames
 
-        self.load_vt_lookup_table("/scratch/gilbreth/luu15/Projects/TVB/assets/my_vt_lookup_table_impedance.pkl")
+        self.load_vt_lookup_table(LOOKUP_TABLE_PATH)
 
     def query_collision(self, sdf, tf_sdf, sdf_linvel_world, sdf_angvel_world, points_world, velocity_world):
         """
