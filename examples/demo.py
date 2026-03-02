@@ -1,17 +1,4 @@
 import numpy as np
-# numpy compatibility fix for older versions (e.g., in TVB)
-def patch_numpy_compatibility():
-    if not hasattr(np, "bool"):
-        np.bool = bool
-    if not hasattr(np, "int"):
-        np.int = int
-    if not hasattr(np, "float"):
-        np.float = float
-    if not hasattr(np, "object"):
-        np.object = object
-
-patch_numpy_compatibility() # Apply the patch before importing any modules that might use numpy
-
 from gym import spaces
 
 import isaacgym
@@ -33,7 +20,7 @@ import torch
 import hydra
 from omegaconf import DictConfig, OmegaConf
 from typing import Dict, Tuple
-from furniture_bench.robot.robot_state import ROBOT_STATE_DIMS, ROBOT_STATES
+f
 
 # Mappings from strings to environments
 isaacgym_task_map = {
@@ -43,13 +30,12 @@ isaacgym_task_map = {
     "TacSLTaskPowerInsertion": TacSLTaskPowerInsertion,
     "TacSLTaskPickInBox": TacSLTaskPickInBox,
     "TacSLTaskBoltNut": TacSLTaskBoltNut,
-    # "TacSLTaskBulbSocketScrew": TacSLTaskBulbSocketScrew,
-    "TacSLTaskBulb": TacSLTaskBulb, # alias for backward compatibility
+    "TacSLTaskBulb": TacSLTaskBulb, 
     "TacSLTaskSearchInBox": TacSLTaskSearchInBox,
     "TacSLTaskClassBall": TacSLTaskClassBall,
 }
 
-class IsaacEnvWrapper():
+class ManifeelEnvWrapper():
     def __init__(self, cfg):
         self.cfg = cfg
         self._start_task(self.cfg)
@@ -129,7 +115,7 @@ class IsaacEnvWrapper():
         return obs
 
     def step(self, action):
-        # actions = torch.from_numpy(action).to(dtype=torch.float32).unsqueeze(0)
+        
         if isinstance(action, torch.Tensor):
             actions = action.to(dtype=torch.float32)
         else:
@@ -154,103 +140,8 @@ class IsaacEnvWrapper():
     def close(self):
         pass
 
-    # -------------------------------------------------
-    # ENV STATE SNAPSHOT (Deterministic Undo / Resume)
-    # -------------------------------------------------
 
-    def get_env_state(self, env_idx: int = 0) -> dict:
-        """
-        Snapshot full simulation state for one environment index.
-
-        Works for vectorized IsaacGym envs.
-        """
-
-        # Make sure tensors are fresh
-        # self.envs.gym.refresh_actor_root_state_tensor(self.envs.sim)
-        # self.envs.gym.refresh_dof_state_tensor(self.envs.sim)
-        # self.envs.gym.refresh_rigid_body_state_tensor(self.envs.sim)
-        self.envs.refresh_base_tensors()
-
-        # Clone tensors (IMPORTANT: clone, not reference)
-        root_states = self.envs.root_state.clone()
-        dof_states = self.envs.dof_state.clone()
-        rb_states = self.envs.body_state.clone()
-
-        state = {
-            "root_state_tensor": root_states,
-            "dof_state_tensor": dof_states,
-            "rigid_body_state_tensor": rb_states,
-        }
-
-        # Optional buffers (only if exist)
-        if hasattr(self, "progress_buf"):
-            state["progress_buf"] = self.envs.progress_buf.clone()
-
-        if hasattr(self, "reset_buf"):
-            state["reset_buf"] = self.envs.reset_buf.clone()
-
-        if hasattr(self, "success"):
-            state["success"] = self.envs._check_success().clone()
-
-        if hasattr(self, "episode_length_buf"):
-            state["episode_length_buf"] = self.envs.episode_length_buf.clone()
-
-        # Save RNG states for full determinism
-        state["torch_rng_state"] = torch.get_rng_state()
-        if torch.cuda.is_available():
-            state["cuda_rng_state"] = torch.cuda.get_rng_state()
-
-        return state
-
-
-    def set_env_state(self, env_idx: int = 0, state: dict = None):
-        """
-        Restore full simulation state.
-
-        Must be followed by refresh().
-        """
-
-        if state is None:
-            return
-
-        # Restore simulation tensors
-        self.envs.root_state.copy_(state["root_state_tensor"])
-        self.envs.dof_state.copy_(state["dof_state_tensor"])
-        self.envs.body_state.copy_(state["rigid_body_state_tensor"])
-
-        # Push tensors back into simulator
-        self.envs.gym.set_actor_root_state_tensor(self.envs.sim, self.envs.root_state)
-        self.envs.gym.set_dof_state_tensor(self.envs.sim, self.envs.dof_state)
-
-        # Restore buffers if present
-        if "progress_buf" in state and hasattr(self, "progress_buf"):
-            self.envs.progress_buf.copy_(state["progress_buf"])
-
-        if "reset_buf" in state and hasattr(self, "reset_buf"):
-            self.envs.reset_buf.copy_(state["reset_buf"])
-
-        if "success_buf" in state and hasattr(self, "success"):
-            self.envs.success.copy_(state["success_buf"])
-
-        if "episode_length_buf" in state and hasattr(self, "episode_length_buf"):
-            self.envs.episode_length_buf.copy_(state["episode_length_buf"])
-
-        # Restore RNG states
-        torch.set_rng_state(state["torch_rng_state"])
-        if torch.cuda.is_available() and "cuda_rng_state" in state:
-            torch.cuda.set_rng_state(state["cuda_rng_state"])
-
-
-    def refresh(self):
-        """
-        Refresh all simulation tensors after restoring state.
-        """
-
-        # self.envs.gym.refresh_actor_root_state_tensor(self.envs.sim)
-        # self.envs.gym.refresh_dof_state_tensor(self.envs.sim)
-        # self.envs.gym.refresh_rigid_body_state_tensor(self.envs.sim)
-        self.envs.refresh_base_tensors()
-
+    
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
     from IPython.display import display, clear_output
@@ -261,7 +152,7 @@ if __name__ == '__main__':
                 config_name="isaacgym_config")
     def main(cfg: DictConfig):
         # Pass the config explicitly
-        wrapped_env = IsaacEnvWrapper(cfg)
+        wrapped_env = ManifeelEnvWrapper(cfg)
         print("Observation space is", wrapped_env.observation_space)
         print("Action space is", wrapped_env.action_space)
         wrapped_env.seed(0)
@@ -274,11 +165,9 @@ if __name__ == '__main__':
             print(f"🚀color_image1.shape: {obs['color_image1'].shape}")
             print(f"🚀color_image2.shape: {obs['color_image2'].shape}")
             print(f"sucess: {wrapped_env.success}")
-            # print(f"🚀obs_dict[tactile_force_field_left].shape: {obs['tactile_force_field_left'].shape}")
-            # print(f"🚀obs_dict[tactile_depth_left].shape: {obs['tactile_depth_left'].shape}")
+            
 
             print(reward, done, info)
-            # tactile_rgb_image = observations['left_tactile_camera_taxim'][0]
-            # wrist_rgb_image = observations['wrist_2'][0]
+            
 
     main()
