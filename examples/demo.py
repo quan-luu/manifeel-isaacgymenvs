@@ -20,7 +20,7 @@ import torch
 import hydra
 from omegaconf import DictConfig, OmegaConf
 from typing import Dict, Tuple
-f
+
 
 # Mappings from strings to environments
 isaacgym_task_map = {
@@ -143,13 +143,10 @@ class ManifeelEnvWrapper():
 
     
 if __name__ == '__main__':
-    import matplotlib.pyplot as plt
-    from IPython.display import display, clear_output
-    import torch
             
     @hydra.main(version_base="1.1", 
-                config_path="../../TVB/TVB/config", 
-                config_name="isaacgym_config")
+                config_path="../isaacgymenvs/cfg", 
+                config_name="config")
     def main(cfg: DictConfig):
         # Pass the config explicitly
         wrapped_env = ManifeelEnvWrapper(cfg)
@@ -161,13 +158,12 @@ if __name__ == '__main__':
             random_actions = 2.0 * np.random.rand(wrapped_env.action_space.shape[0]) - 1.0
             obs, reward, done, info = wrapped_env.step(random_actions)
             print("🚀obs_dict keys:", obs.keys())
-            print(f"🚀robot_state.shape: {obs['robot_state'].shape}")
-            print(f"🚀color_image1.shape: {obs['color_image1'].shape}")
-            print(f"🚀color_image2.shape: {obs['color_image2'].shape}")
-            print(f"sucess: {wrapped_env.success}")
+            print(f"🚀robot_state.shape: {obs['ee_pos'].shape}")
+            print(f"🚀color_image1.shape: {obs['ee_quat'].shape}")
+            print(f"🚀color_image2.shape: {obs['socket_pos'].shape}")
             
-
-            print(reward, done, info)
+            # print(f"sucess: {wrapped_env.success}")
+            # print(reward, done, info)
             
 
     main()

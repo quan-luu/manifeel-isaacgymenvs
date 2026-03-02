@@ -59,8 +59,8 @@ headless: False
 
 # set default task and default training config based on task
 defaults:
-  - task: Ant
-  - train: ${task}PPO
+  - task: TacSLTaskInsertion
+  - train: ${task}PPO_LSTM_dict_AAC
   - pbt: no_pbt
   - override hydra/job_logging: disabled
   - _self_
