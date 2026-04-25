@@ -23,6 +23,10 @@ import itertools
 import numpy as np
 import torch
 import trimesh
+
+if not hasattr(np, 'float'):
+    np.float = float
+
 from urdfpy import URDF
 import yaml
 # import time
